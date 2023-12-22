@@ -47,7 +47,7 @@ google-api-python-client==2.79.0
 
 # For Google Cloud Platform KMS
 cryptography==39.0.1
-google-cloud-kms==2.15.0
+google-cloud-kms==2.20.0
 
 # Other Google Cloud Platform APIs
 # used in the web app
