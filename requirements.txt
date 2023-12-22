@@ -28,7 +28,7 @@ redis==4.5.1
 ipinfo==4.4.2
 
 # For optimisations
-orjson==3.8.6
+orjson==3.9.10
 minify-html==0.10.8
 aiofiles==23.1.0
 
