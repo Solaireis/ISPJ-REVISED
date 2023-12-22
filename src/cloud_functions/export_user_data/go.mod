@@ -9,7 +9,7 @@ require (
 	github.com/mholt/archiver/v4 v4.0.0-alpha.7
 	go.mongodb.org/mongo-driver v1.11.2
 	google.golang.org/api v0.110.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
