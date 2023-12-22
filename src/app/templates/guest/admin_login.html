@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %} Admin Login{% endblock %}
+{% block head %}
+    <meta name="robots" content="noindex, nofollow">
+    <script nonce="{{ csp_nonce }}" src="https://www.google.com/recaptcha/enterprise.js?render={{ MIRAI_SITE_KEY }}&onload=onloadCallback&render=explicit"></script>
+    <script nonce="{{ csp_nonce }}" type="text/javascript">
+        let loginFormWidgetId;
+        function onloadCallback() {
+            loginFormWidgetId = grecaptcha.enterprise.render("loginFormBtn", {
+                "sitekey" : "{{ MIRAI_SITE_KEY }}",
+                "action" : "admin_login",
+                "callback": "loginCallback",
+            });
+        };
+    </script>
+{% endblock %}
+{% block body_class %}bg-white font-family-karla h-screen{% endblock %}
+{% from "includes/_show_password_toggle.html" import show_password_toggle %}
+
+{% block content %}
+    <div class="w-full flex flex-wrap">
+
+        <!-- Login Section -->
+        <div class="w-full lg:w-1/2 flex flex-col">
+
+            <div class="flex justify-center lg:justify-start pt-12 lg:pl-12 lg:-mb-24">
+                <a href="/" class="outline outline-2 outline-main-50 p-5">
+                    <img src="{{ url_for('static', path='img/logo.webp') }}" alt="Mirai Logo" class="object-cover h-10 w-30 lg:w-15 lg:h-7">
+                </a>
+            </div>
+
+            <div class="flex flex-col justify-center lg:justify-start my-auto pt-8 lg:pt-0 px-8 lg:px-32">
+                <img src="{{ url_for('static', path='img/login/welcome.png') }}" alt="Welcome" class="object-cover h-full w-30 lg:w-15 lg:h-30">
+                <p class="text-center text-3xl pb-3 md:pb-8">Administrator Login ❤ (ɔˆз(ˆ⌣ˆc)</p>
+                
+                <div id="alert" class="hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                    <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                    <span class="sr-only">Info</span>
+                    <div id="alertMsg"></div>
+                </div>
+                <form class="flex flex-col" id="loginForm">
+                    <div class="flex flex-col pt-4 hidden" id="verificationCodeDiv">
+                        <label for="verificationCode" class="text-lg max-lg:text-sm">Verification Code</label>
+                        <input type="text" id="verificationCode" placeholder="123456" minlength="6" maxlength="6" inputmode="numeric" pattern="[0-9]+" class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="userIdentifier" class="text-lg max-lg:text-sm">Email/Username</label>
+                        <input type="text" id="userIdentifier" placeholder="your@email.com/john_doe" minlength="1" required class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="password" class="text-lg max-lg:text-sm">Password</label>
+                        <div class="relative">
+                            <input type="password" id="password" placeholder="Password" required minlength="8" maxlength=64 class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                            {{ show_password_toggle(csp_nonce, "password") }}
+                        </div>
+                    </div>
+
+                    <button class="g-recaptcha btn-main font-bold text-lg p-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                    data-mdb-ripple-color="light" id="loginFormBtn">
+                        Login As Admin
+                    </button>
+                </form>
+                <div class="flex flex-col pt-4">
+                    <label class="inline-flex relative items-center cursor-pointer">
+                        <input type="checkbox" value="" class="sr-only peer" name="staySignedIn">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300  rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-blue-600"></div>
+                        <span class="ml-3 text-xs sm:text-sm">Stay Signed In</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Section -->
+        <div class="w-1/2 shadow-2xl">
+            {% with random_image = ('Garden_Flower.webp', 'Mirror_AR.webp', 'Sky_Snow_Image.webp') | random %}
+                <img class="object-cover w-full h-screen hidden lg:block" src="{{ url_for('static', path='img/login/' + random_image) }}">
+            {% endwith %}
+        </div>
+    </div>
+
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/password.js') }}"></script>
+    <script nonce="{{ csp_nonce }}">
+        const staySignedIn = document.querySelector("[name='staySignedIn']");
+        const alertDiv = document.getElementById("alert");
+        const alertMsg = document.getElementById("alertMsg");
+        function addErrorMsg(msg, div, msgDiv) {
+            // unhide the alert div and remove any success classes
+            div.classList.remove("hidden");
+            div.classList.remove("text-green-700");
+            div.classList.remove("bg-green-100");
+
+            // add error classes and the error message
+            div.classList.add("text-red-700");
+            div.classList.add("bg-red-100");
+            msgDiv.innerText = msg;
+        }
+        function addSuccessMsg(msg, div, msgDiv) {
+            // unhide the alert div and remove any error classes
+            div.classList.remove("hidden");
+            div.classList.remove("text-red-700");
+            div.classList.remove("bg-red-100");
+
+            // add success classes and the success message
+            div.classList.add("text-green-700");
+            div.classList.add("bg-green-100");
+            msgDiv.innerText = msg;
+        }
+
+        // for any flashed messages from verify email, etc.
+        {% for message in get_flashed_messages() %}
+            {% if message.category == "success" %}
+                addSuccessMsg("{{ message.message }}", alertDiv, alertMsg);
+            {% elif message.message not in ("password_compromised", "oauth2_error") %}
+                addErrorMsg("{{ message.message }}", alertDiv, alertMsg);
+            {% endif %}
+        {% endfor %}
+
+        const loginForm = document.getElementById("loginForm");
+        const userIdentifierEl = document.getElementById("userIdentifier")
+        const passwordEl = document.getElementById("password")
+        const verificationCodeEl = document.getElementById("verificationCode");
+        const verificationCodeDiv = document.getElementById("verificationCodeDiv");
+        function loginCallback(token) {
+            if (!loginForm.checkValidity()) {
+                loginForm.reportValidity();
+                grecaptcha.enterprise.reset(loginFormWidgetId);
+                return;
+            }
+
+            let emailToken = verificationCodeEl.value.trim();
+            if (emailToken == "") {
+                emailToken = null;
+            }
+            const data = {
+                user_identifier: userIdentifierEl.value,
+                password: passwordEl.value,
+                stay_signed_in: staySignedIn.checked,
+                verification_code: verificationCodeEl.value,
+                recaptcha_token: token,
+                email_token: emailToken,
+            };
+            fetch("{{ url_for('api_admin_login') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify(data)
+            })
+            .then((res) => {
+                if (res.status == 200) {
+                    return {ok: true};
+                }
+                return res.json();
+            })
+            .then((data) => {
+                console.log("Success:", data)
+                if (data.ok) {
+                    window.location.href = "/";
+                } else if (data.message.startsWith("2fa required")) {
+                    window.location.href = "{{ url_for('two_fa') }}";
+                } else if (data.message == "email") {
+                    verificationCodeDiv.classList.remove("hidden");
+                    verificationCodeEl.required = true;
+                    // disable the username and password fields
+                    userIdentifierEl.disabled = true;
+                    passwordEl.disabled = true;
+                    userIdentifierEl.classList.add("bg-gray-200");
+                    userIdentifierEl.classList.add("cursor-not-allowed");
+                    passwordEl.classList.add("bg-gray-200");
+                    passwordEl.classList.add("cursor-not-allowed");
+
+                    addErrorMsg(
+                        "You are logging in from a new location, please check your email for a verification code.",
+                        alertDiv, 
+                        alertMsg
+                    );
+                } else if (!data.ok) {
+                    let apiErrMsg = data.message;
+                    if (apiErrMsg === undefined) {
+                        apiErrMsg = "{{ validate_err }}";
+                    }
+                    addErrorMsg(apiErrMsg, alertDiv, alertMsg);
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                addErrorMsg("{{ err_msg }}", alertDiv, alertMsg);
+            });
+            grecaptcha.enterprise.reset(loginFormWidgetId);
+        };
+
+        
+    </script>
+{% endblock %}

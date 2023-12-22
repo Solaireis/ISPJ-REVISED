@@ -1,0 +1,31 @@
+{
+  "devDependencies": {
+    "@babel/core": "^7.21.0",
+    "@babel/preset-env": "^7.20.2",
+    "babelify": "^10.0.0",
+    "browserify": "^17.0.0",
+    "esmify": "^2.1.1",
+    "tailwindcss": "^3.2.7"
+  },
+  "scripts": {
+    "build-css": "tailwindcss -i ./src/app/static/css/main.css -o ./src/app/static/css/tailwind.css",
+    "watch-css": "tailwindcss -i ./src/app/static/css/main.css -o ./src/app/static/css/tailwind.css --watch",
+    "minify-css": "tailwindcss -i ./src/app/static/css/main.css -o ./src/app/static/css/tailwind.css --minify",
+    "build-js": "npx browserify -p esmify src/app/static/js/modules.js > src/app/static/js/bundles.js"
+  },
+  "dependencies": {
+    "@picmo/popup-picker": "^5.7.6",
+    "crc-32": "https://cdn.sheetjs.com/crc-32-latest/crc-32-latest.tgz",
+    "daisyui": "^2.51.0",
+    "dompurify": "^3.0.0",
+    "filepond": "^4.30.4",
+    "filepond-plugin-file-validate-size": "^2.2.8",
+    "filepond-plugin-image-exif-orientation": "^1.0.11",
+    "filepond-plugin-image-preview": "^4.6.11",
+    "flowbite": "^1.6.3",
+    "picmo": "^5.7.6",
+    "preline": "^1.7.0",
+    "sha3": "^2.1.4",
+    "tw-elements": "^1.0.0-beta1"
+  }
+}

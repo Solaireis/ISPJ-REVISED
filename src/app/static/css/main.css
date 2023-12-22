@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.text-hover {
+    @apply text-main-50 hover:text-main-900;
+}
+
+.btn-main {
+    @apply text-white bg-main-50 hover:bg-main-900 transition ease-in duration-500 focus:outline focus:outline-2 focus:outline-main-900 focus:ring-2 focus:ring-main-900 focus:ring-opacity-50;
+}

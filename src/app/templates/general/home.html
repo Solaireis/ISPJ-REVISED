@@ -1,0 +1,518 @@
+{% extends "base_ui.html" %}
+{% block title %}Home{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block content %}
+    {% for message in get_flashed_messages() %}
+        {% if request.session.get(SESSION_COOKIE) and message.message == "password_compromised" %}
+            <!-- Main modal -->
+            <div id="passwordModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+                <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+                    <div class="flex flex-col bg-white border shadow-sm rounded-xl">
+                        <div class="flex justify-between items-center py-3 px-4 border-b">
+                            <h3 class="font-bold text-gray-800 ">
+                                Password Compromised Alert!
+                            </h3>
+                            <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm" data-hs-overlay="#passwordModal">
+                                <span class="sr-only">Close</span>
+                                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-4 overflow-y-auto">
+                            <p class="mt-1 text-gray-800 ">
+                                Your password has been compromised in a data breach.
+                            </p>
+                            <p class="mt-1 text-gray-800 ">
+                                Please change your password immediately to prevent account takeovers.
+                            </p>
+                        </div>
+                        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
+                            <button type="button" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium bg-red-500 text-white shadow-sm align-middle hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-main-100 transition-all text-sm" data-hs-overlay="#passwordModal">
+                                Ignore for now
+                            </button>
+                            <a href="{{ url_for('settings') }}" class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md btn-main">
+                                Change password
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script nonce="{{ csp_nonce }}">
+                HSOverlay.open(document.getElementById("passwordModal"));
+            </script>
+        {% elif message.message not in ("password_compromised", "oauth2_error") %}
+            <!-- Main modal -->
+            <div id="alertModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+                <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+                    <div class="flex flex-col bg-white border shadow-sm rounded-xl">
+                        <div class="flex justify-between items-center py-3 px-4 border-b">
+                            <h3 class="font-bold text-gray-800 ">
+                                {{ message.category }}
+                            </h3>
+                            <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm" data-hs-overlay="#alertModal">
+                                <span class="sr-only">Close</span>
+                                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-4 overflow-y-auto">
+                            <p class="mt-1 text-gray-800 ">
+                                {{ message.message }}
+                            </p>
+                        </div>
+                        <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
+                            <button type="button" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium btn-main text-sm" data-hs-overlay="#alertModal">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script nonce="{{ csp_nonce }}">
+                HSOverlay.open(document.getElementById("alertModal"));
+            </script>
+        {% endif %}
+    {% endfor %}
+    <!-- Header -->
+    <div class="flex justify-between items-center border-b px-4 py-3 sticky top-0 bg-white  border-l border-r border-gray-200 z-[1]">
+        <!-- Title -->
+        <h2 class="text-gray-800  font-bold font-sm">Home</h2>
+        <!-- /Title -->
+        <!-- Custom Timeline -->
+        <div>
+            <svg viewBox="0 0 24 24" class="w-5 h-5 text-main-100" fill="currentColor">
+                <g>
+                    <path d="M22.772 10.506l-5.618-2.192-2.16-6.5c-.102-.307-.39-.514-.712-.514s-.61.207-.712.513l-2.16 6.5-5.62 2.192c-.287.112-.477.39-.477.7s.19.585.478.698l5.62 2.192 2.16 6.5c.102.306.39.513.712.513s.61-.207.712-.513l2.16-6.5 5.62-2.192c.287-.112.477-.39.477-.7s-.19-.585-.478-.697zm-6.49 2.32c-.208.08-.37.25-.44.46l-1.56 4.695-1.56-4.693c-.07-.21-.23-.38-.438-.462l-4.155-1.62 4.154-1.622c.208-.08.37-.25.44-.462l1.56-4.693 1.56 4.694c.07.212.23.382.438.463l4.155 1.62-4.155 1.622zM6.663 3.812h-1.88V2.05c0-.414-.337-.75-.75-.75s-.75.336-.75.75v1.762H1.5c-.414 0-.75.336-.75.75s.336.75.75.75h1.782v1.762c0 .414.336.75.75.75s.75-.336.75-.75V5.312h1.88c.415 0 .75-.336.75-.75s-.335-.75-.75-.75zm2.535 15.622h-1.1v-1.016c0-.414-.335-.75-.75-.75s-.75.336-.75.75v1.016H5.57c-.414 0-.75.336-.75.75s.336.75.75.75H6.6v1.016c0 .414.335.75.75.75s.75-.336.75-.75v-1.016h1.098c.414 0 .75-.336.75-.75s-.336-.75-.75-.75z"></path>
+                </g>
+            </svg>
+        </div>
+        <!-- /Custom Timeline -->
+    </div>
+    <!-- /Header -->
+
+    <!-- Post Tweet -->
+    <div class="border-b border-gray-200  pb-4 border-l border-r">
+        {% if request.session.get(SESSION_COOKIE) %}
+            <form id="uploadPostFormHome">
+                <div class="flex flex-shrink-0 p-4 pb-0">
+                    <a href="{{ url_for('profile', username=user.username) }}" class="w-12 flex items-top">
+                        <img class="inline-block h-10 w-10 rounded-full" src="{{ user.profile_image }}" alt="@{{ user.username }} profile picture">
+                    </a>
+                    <div class="w-full p-2">
+                        <textarea id="postTextArea" class="text-gray-900 placeholder-gray-400 w-full h-10 bg-transparent border-0 focus:outline-none resize-none" placeholder="What's happening?" maxlength="{{ get_post_max_length(user) }}"></textarea>
+                    </div>
+                </div>
+                <div class="hidden mx-5" id="fileInputContainer">
+                    <input type="file" class="filepond" id="fileUploadInputPostHome" name="file">
+                </div>
+                <div class="w-full flex items-top p-2 text-white pl-14">
+                    <button type="button" id="imageBtn" class="text-main-500 hover:bg-pink-100 rounded-full p-2">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor">
+                            <g>
+                                <path d="M19.75 2H4.25C3.01 2 2 3.01 2 4.25v15.5C2 20.99 3.01 22 4.25 22h15.5c1.24 0 2.25-1.01 2.25-2.25V4.25C22 3.01 20.99 2 19.75 2zM4.25 3.5h15.5c.413 0 .75.337.75.75v9.676l-3.858-3.858c-.14-.14-.33-.22-.53-.22h-.003c-.2 0-.393.08-.532.224l-4.317 4.384-1.813-1.806c-.14-.14-.33-.22-.53-.22-.193-.03-.395.08-.535.227L3.5 17.642V4.25c0-.413.337-.75.75-.75zm-.744 16.28l5.418-5.534 6.282 6.254H4.25c-.402 0-.727-.322-.744-.72zm16.244.72h-2.42l-5.007-4.987 3.792-3.85 4.385 4.384v3.703c0 .413-.337.75-.75.75z"></path>
+                                <circle cx="8.868" cy="8.309" r="1.542"></circle>
+                            </g>
+                        </svg>
+                    </button>
+                    <div ></div>
+                    <button type="button" id="emojiBtn" class="text-main-500 hover:bg-pink-100 rounded-full p-2">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor">
+                            <g>
+                                <path d="M12 22.75C6.072 22.75 1.25 17.928 1.25 12S6.072 1.25 12 1.25 22.75 6.072 22.75 12 17.928 22.75 12 22.75zm0-20C6.9 2.75 2.75 6.9 2.75 12S6.9 21.25 12 21.25s9.25-4.15 9.25-9.25S17.1 2.75 12 2.75z"></path>
+                                <path d="M12 17.115c-1.892 0-3.633-.95-4.656-2.544-.224-.348-.123-.81.226-1.035.348-.226.812-.124 1.036.226.747 1.162 2.016 1.855 3.395 1.855s2.648-.693 3.396-1.854c.224-.35.688-.45 1.036-.225.35.224.45.688.226 1.036-1.025 1.594-2.766 2.545-4.658 2.545z"></path>
+                                <circle cx="14.738" cy="9.458" r="1.478"></circle>
+                                <circle cx="9.262" cy="9.458" r="1.478"></circle>
+                            </g>
+                        </svg>
+                    </button>
+                    <button type="submit" id="postHomeSubmitBtn" class="btn-main rounded-full py-1 px-4 ml-auto mr-1">
+                        <span class="font-bold text-sm">Post</span>
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <div class="flex flex-shrink-0 p-4 pb-0 text-center">
+                <!-- Make a short message and a login button -->
+                <div class="w-full p-2">
+                    <p class="text-md">You are currently not logged in.</p>
+                    <p class="text-md">Let's get you started by joining Mirai!</p>
+                    <br>
+                    <a href="{{ url_for('login') }}" class="btn-main rounded-full py-2 px-4 mt-2 ml-auto mr-1">
+                        <span class="font-bold text-sm">Login!</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    <!-- /Post Tweet -->
+
+    <!-- Posts -->
+    <div id="posts">
+    </div>
+    <!-- /Posts -->
+
+    <div id="postDropdown" class="z-[999] hidden text-base list-none bg-white divide-y divide-gray-100 rounded shadow w-44 border-gray-300 border-2">
+        <ul class="py-1" aria-labelledby="postDropdownButton">
+
+        </ul>
+    </div>
+
+    <div class="text-center hidden mt-1" id="spinner">
+        <div role="status">
+            <svg aria-hidden="true" class="inline w-8 h-8 mr-2 text-gray-200 animate-spin fill-main-50" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+            </svg>
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    {% include "includes/_image_view.html" %}
+    {% endblock %}
+    {% block scripts %}
+    <script nonce="{{ csp_nonce }}" type="module" src="https://cdn.jsdelivr.net/npm/@justinribeiro/lite-youtube@1.4.0/lite-youtube.js"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/bundles.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/textarea.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/msg_and_image.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/embeds.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/posts.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/like_post.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/time.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/post_dropdown.js') }}"></script>
+    <script nonce="{{ csp_nonce }}" src="https://cdnjs.cloudflare.com/ajax/libs/crc-32/1.2.2/crc32c.min.js"></script>
+    <!--General Scripts-->
+    {% if user %}
+        <script nonce="{{ csp_nonce }}">
+            const textAreaPost = document.getElementById("postTextArea");
+            const emojiBtn = document.getElementById("emojiBtn");
+            if (textAreaPost && emojiBtn) {
+                textareaAutoAdjust(textAreaPost, 100);
+                const picker = createPopup({
+                }, {
+                    referenceElement: emojiBtn,
+                    triggerElement: emojiBtn,
+                    position: "bottom-start",
+                    className: "z-[999]",
+                });
+                picker.addEventListener("emoji:select", (event) => {
+                    textAreaPost.value += event.emoji;
+                });
+                emojiBtn.addEventListener("click", () => {
+                    picker.toggle();
+                });
+            }
+
+            const imageBtn = document.getElementById("imageBtn");
+            const imageInput = document.getElementById("fileInputContainer");
+            if (imageInput) {
+                const imageInputClass = imageInput.classList;
+                if (imageBtn) {
+                    imageBtn.onclick = function () {
+                        if (imageInputClass.contains("hidden")) {
+                            imageInputClass.replace("hidden", "block");
+                        } else {
+                            imageInputClass.replace("block", "hidden");
+                        }
+                    };
+                }
+            }
+        </script>
+
+        <!--Filepond Scripts-->
+        <script nonce="{{ csp_nonce }}">
+            FilePond.registerPlugin(
+                FilePondPluginImagePreview, 
+                FilePondPluginImageExifOrientation, 
+                FilePondPluginFileValidateSize, 
+            );
+            let postHomeText = "";
+            let uploadTokenHome;
+            let errorUploadMsgHome;
+            let postInputHome = document.getElementById("fileUploadInputPostHome")
+            if (postInputHome && textAreaPost) {
+                const pondPostHome = FilePond.create(postInputHome)
+                pondPostHome.setOptions({
+                    server: {
+                        process: async (fieldName, file, metadata, load, error, progress, abort) => {
+                            try {
+                                const formDataFunction = () => {
+                                    const formData = new FormData();
+                                    formData.append("author", "{{ user.id }}");
+                                    return formData;
+                                }
+                                await uploadChunks(
+                                    "{{ url_for('upload_post') }}",
+                                    file,
+                                    metadata,
+                                    {{ MAX_CHUNK_SIZE }},
+                                    formDataFunction,
+                                    uploadTokenHome,
+                                    progress,
+                                )
+                            } catch (err) {
+                                uploadTokenHome = null;
+                                errorUploadMsgHome = err.message;
+                                console.error(err);
+                                error(err);
+                                return;
+                            }
+
+                            load("File uploaded successfully.");
+                        },
+                    },
+                    labelFileProcessingError: () => {
+                        resetHomePostBtn();
+                        return errorUploadMsgHome || "Something went wrong.";
+                    },
+                    onprocessfiles: async () => {
+                        // all files has been uploaded
+                        uploadTokenHome = null;
+                        location.reload();
+                    },
+                    storeAsFile: true,
+                    allowMultiple: true,
+                    allowRevert: false,
+                    instantUpload: false,
+                    allowProcess: false,
+                    maxParallelUploads: 4,
+                    maxFiles:4,
+                    maxFileSize: {{ user.mirai_plus | lower }} ? "1000MB" : "500MB",
+                    labelIdle: "Drag & Drop your files or <span class='filepond--label-action'> Browse </span>",
+                });
+
+                const resetHomePostBtn = () => {
+                    postFileHomeUploadBtn.disabled = false;
+                    postFileHomeUploadBtn.innerText = "Post";
+                    postFileHomeUploadBtn.classList.remove("cursor-not-allowed");
+                }
+                const showHomeError = (errMsg) => {
+                    textAreaPost.value = errMsg;
+                    postFileHomeUploadBtn.innerText = "Uh Oh!";
+                    textAreaPost.classList.remove("border-0");
+                    textAreaPost.classList.add("border-red-500");
+                    textAreaPost.classList.add("border-2");
+                    textAreaPost.classList.add("cursor-not-allowed");
+                    setTimeout(() => {
+                        resetHomePostBtn();
+                        textAreaPost.value = postHomeText;
+                        textAreaPost.classList.add("border-0");
+                        textAreaPost.classList.remove("border-red-500");
+                        textAreaPost.classList.remove("border-2");
+                        textAreaPost.classList.remove("cursor-not-allowed");
+                    }, 3000);
+                };
+                const postFileHomeUploadBtn = document.getElementById("postHomeSubmitBtn");
+                document.getElementById("uploadPostFormHome").onsubmit = async (e) => {
+                    e.preventDefault();
+                    let textHash = null;
+                    let textChecksum = null;
+                    const textDescription = document.getElementById("postTextArea").value.trim() || null;
+                    const uploadedFiles = pondPostHome.getFiles();
+                    if (uploadedFiles.length == 0 && !textDescription) {
+                        return;
+                    }
+
+                    postHomeText = textDescription || "";
+                    postFileHomeUploadBtn.disabled = true;
+                    postFileHomeUploadBtn.innerText = "Posting...";
+                    postFileHomeUploadBtn.classList.add("cursor-not-allowed");
+                    if (uploadedFiles.length > 0) {
+                        let hasVideo = false;
+                        let hasImage = false;
+                        let hasInvalidFile = false;
+                        for (const file of uploadedFiles) {
+                            const fileType = file.fileType;
+                            if (fileType.startsWith("video")) {
+                                hasVideo = true;
+                            } else if (fileType.startsWith("image")) {
+                                hasImage = true;
+                            } else {
+                                hasInvalidFile = true;
+                            }
+                        }
+                        if ((hasVideo && hasImage) || hasInvalidFile) {
+                            showHomeError("You can only either upload a video or up to 4 images at once.");
+                            return;
+                        }
+                        if (hasVideo && uploadedFiles.length > 1) {
+                            showHomeError("You can only upload a single video at once.");
+                            return;
+                        }
+
+                        try {
+                            removeDuplicateFilename(uploadedFiles);
+                            uploadTokenHome = await fetchUploadId(
+                                "{{ url_for('get_upload_id') }}",
+                                "{{ user.id }}",
+                                uploadedFiles.length,
+                                textDescription,
+                                "post",
+                            );
+                        } catch (err) {
+                            showHomeError(err.message || err || "Something went wrong.");
+                            console.error(err);
+                            return;
+                        }
+                        pondPostHome.processFiles();
+                    } else {
+                        const postData = {
+                            text: textDescription,
+                            md5_checksum: md5hash(textDescription),
+                            crc32c_checksum: CRC32C.str(textDescription) >>> 0,
+                        };
+                        try {
+                            const res = await fetch("{{ url_for('upload_post_text') }}", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                                },
+                                body: JSON.stringify(postData),
+                            });
+                            const data = await res.json();
+                            if (res.status == 200) {
+                                location.reload();
+                            }
+                        } catch (err) {
+                            showHomeError(err.message || err || "Something went wrong.");
+                            console.error(err);
+                            return;
+                        } 
+                    }
+                } 
+            }
+        </script>
+    {% endif %}
+
+    <!--Infinite Scroll-->
+    <script nonce="{{ csp_nonce }}">
+        let blursexualImages = true;
+        let blurViolentImages = true;
+        let blurMemeImages = false;
+        {% if user %}
+            blursexualImages = {{ user.blur_sexual_images | lower }};
+            blurViolentImages = {{ user.blur_violent_images | lower }};
+            blurMemeImages = {{ user.blur_meme_images | lower }};
+        {% endif %}
+
+        const hasLiked = new Map(); 
+        const postDiv = document.getElementById("posts");
+        const postDropdown = document.getElementById("postDropdown")
+        let oldestPostID = null;
+        let isFetching = false;
+        let noMorePosts = false;
+        const getPostUrl = "{{ url_for('get_post') }}";
+
+        const likeFn = async (postId) => {
+            const postUserLiked = hasLiked.get(postId) || false;
+            const url = postUserLiked ? "{{ url_for('remove_post_like') }}" : "{{ url_for('add_post_like') }}";
+            const res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    post_id: postId,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                const heartButton = document.getElementById(`heartButton${postId}`);
+                const likeCount = document.getElementById(`likeCount${postId}`);
+                hasLiked.set(postId, !postUserLiked);
+                hasLiked.get(postId) ? addLike(heartButton, likeCount, null) : removeLike(heartButton, likeCount, null);
+                return;
+            }
+        }
+
+        async function fetchPosts() {
+            if (isFetching || noMorePosts) {
+                return;
+            }
+
+            spinner.classList.remove("hidden");
+            isFetching = true;
+            try {
+                res = await fetch(
+                    oldestPostID != null ? `${getPostUrl}?offset=${oldestPostID}` : getPostUrl, 
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        credentials: "include",
+                    },
+                )
+                if (!res.ok) {
+                    throw new Error(res.message || res);
+                }
+
+                data = await res.json();
+                if (!data || data.length === 0) {
+                    noMorePosts = true;
+                    return;
+                }
+                oldestPostID = data[data.length - 1]._id;
+                for (const jsonData of data) {
+                    const postRes = getPostHtml(jsonData, "{{ user.id }}");
+                    const div = document.createElement("div");
+                    div.setAttribute("id", jsonData._id);
+                    div.innerHTML = postRes.html;
+                    postDiv.appendChild(div);
+                    addImgEvent(postRes.imgViewIds);
+                    formatPlyrJs(postRes.plyrJsIds);
+
+                    const heartButton = document.getElementById(`likeButton${jsonData._id}`);
+                    const likeCount = document.getElementById(`likeCount${jsonData._id}`);
+
+                    heartButton.addEventListener("click", async () => {
+                        await likeFn(jsonData._id);
+                    });
+
+                    if (jsonData.has_liked){
+                        hasLiked.set(jsonData._id, true); 
+                        setAsLiked(document.getElementById(`heartButton${jsonData._id}`), likeCount);
+                    }
+
+                    if (jsonData.user_id === "{{ user.id }}") {
+                        document.getElementById(`deletePost${jsonData._id}`).addEventListener("click", async () => {
+                            await deleteFunc(jsonData._id);
+                        });
+                    }
+
+                    const shareButtonId = document.getElementById(`copyToClipboard${jsonData._id}`);
+                    shareButtonId.addEventListener("click", async () => {
+                        await copyFunc(jsonData.username, jsonData._id);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                isFetching = false;
+                spinner.classList.add("hidden");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+                // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+                await fetchPosts();
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+            }
+
+            document.addEventListener("scroll", async (e) => {
+                if (isFetching || noMorePosts) {
+                    return;
+                }
+
+                if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                    await fetchPosts();
+                }
+            });
+        });
+    </script>
+{% endblock %}

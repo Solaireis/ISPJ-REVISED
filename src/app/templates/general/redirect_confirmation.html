@@ -1,0 +1,39 @@
+{% extends "base_ui.html" %}
+{% block title %}Redirect Confirmation{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center mt-8">
+    <div class="p-4 rounded shadow-lg ring ring-main-50 w-full mx-5">
+        <div class="flex flex-col items-center space-y-2 text-center">
+            <svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="exclamation-triangle" class="text-main-50 w-28 h-28" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
+                <path fill="currentColor" d="M569.517 440.013C587.975 472.007 564.806 512 527.94 512H48.054c-36.937 0-59.999-40.055-41.577-71.987L246.423 23.985c18.467-32.009 64.72-31.951 83.154 0l239.94 416.028zM288 354c-25.405 0-46 20.595-46 46s20.595 46 46 46 46-20.595 46-46-20.595-46-46-46zm-43.673-165.346l7.418 136c.347 6.364 5.609 11.346 11.982 11.346h48.546c6.373 0 11.635-4.982 11.982-11.346l7.418-136c.375-6.874-5.098-12.654-11.982-12.654h-63.383c-6.884 0-12.356 5.78-11.981 12.654z"></path>
+            </svg>
+            {% if malicious %}
+                <h1 class="text-2xl font-bold">High Risk of Danger Ahead!</h1>
+                <p>
+                    You are currently leaving Mirai. <br>
+                    Never enter your credentials on an untrusted website. <br>
+                    <span class="text-red-500 font-bold">URL has been detected as malicious by our hard working hamsters at our servers.</span> <br>
+                </p>
+                <span class="text-red-500 font-bold">Continue at your own risk</span>
+            {% else %}
+                <h1 class="text-2xl font-bold">Potential Danger Ahead!</h1>
+                <p>
+                    You are currently leaving Mirai. <br>
+                    Never enter your credentials on an untrusted website. <br>
+                </p>
+            {% endif %}
+            <p>Your next destination is <br><span class="text-main-50 font-bold">{{ truncate_text(url, 120) }}</span></p>
+            <a class="inline-flex items-center px-4 py-2 rounded btn-main" href="{{ url }}" target="_blank">
+                <span class="text-sm font-medium">
+                    Continue
+                </span>
+                <svg aria-hidden="true" class="w-5 h-5 ml-2 -mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

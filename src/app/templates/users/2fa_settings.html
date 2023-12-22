@@ -1,0 +1,903 @@
+{% extends "users/settings_base.html" %}
+{% block title %}2FA Settings{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.9/css/intlTelInput.css">
+    <script nonce="{{ csp_nonce }}" src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+    <script nonce="{{ csp_nonce }}" src="https://www.google.com/recaptcha/enterprise.js?render={{ MIRAI_SITE_KEY }}&onload=onloadCallback&render=explicit"></script>
+    <script nonce="{{ csp_nonce }}" type="text/javascript">
+        let genNewBackupCodeWidgetId;
+        let sms2faWidgetId;
+        function onloadCallback() {
+            {% if user.has_backup_code %}
+                genNewBackupCodeWidgetId = grecaptcha.enterprise.render("generateNewBackupCodeBtn", {
+                    "sitekey" : "{{ MIRAI_SITE_KEY }}",
+                    "action" : "generate_new_backup_code",
+                    "callback": "backupCodeCallback",
+                });
+            {% endif %}
+            {% if user.sms_2fa == False %}
+                sms2faWidgetId = grecaptcha.enterprise.render("sms2faPhoneNumBtn", {
+                    "sitekey" : "{{ MIRAI_SITE_KEY }}",
+                    "action" : "setup_sms_2fa",
+                    "callback": "sms2faSetupCallback",
+                });
+            {% endif %}
+        };
+    </script>
+{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block setting_title %}
+    Secure Your Account
+{% endblock %}
+{% block setting_desc %}
+    Two-factor authentication adds an extra layer of security to your account. To log in, in addition you'll need to proof your identity through another form of authentication.
+{% endblock %}
+{% block setting_content %}
+    {% with buttonClass = "text-right text-lg text-main-100 hover:text-main-900" %}
+    <div class="w-full px-4">
+        <div class="grid grid-cols-2">
+            <p class="font-medium">
+                SMS
+            </p>
+            {% if user.sms_2fa %}
+                <button type="button" class="{{ buttonClass }}" data-hs-overlay="#sms2faRemoveModal">
+                    <i class="fa fa-cog" aria-hidden="true"></i>
+                </button>
+            {% else %}
+                <button type="button" class="{{ buttonClass }}" data-hs-overlay="#sms2faStartModal">
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+            {% endif %}
+        </div>
+        <p class="label-text mt-2">
+            To access your account, you'll need to enter a code that will be sent to your phone via SMS each time you log in.
+        </p>
+    </div>
+    <hr class="my-4">
+    <div class="w-full px-4">
+        <div class="grid grid-cols-2">
+            <p class="font-medium">
+                Authenticator App
+            </p>
+            {% if user.has_totp %}
+                <button type="button" class="{{ buttonClass }}" data-hs-overlay="#authenticatorRemoveModal">
+                    <i class="fa fa-cog" aria-hidden="true"></i>
+                </button>
+            {% else %}
+                <button type="button" class="{{ buttonClass }}" data-hs-overlay="#getStartedAuthenticatorModal">
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                </button>
+            {% endif %}
+        </div>
+        <p class="label-text mt-2">
+            Every time you log in, you'll be asked to provide a short-lived 6-digit code that is only retrievable via an Authenticator app on your mobile phone.
+        </p>
+    </div>
+
+    {% if user.has_backup_code %}
+        <hr class="my-4">
+        <div class="w-full px-4">
+            <div class="grid grid-cols-2">
+                <p class="font-medium">
+                    Backup Code
+                </p>
+                <button type="button" class="{{ buttonClass }}" data-hs-overlay="#backupCodeModal">
+                    <i class="fa fa-cog" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="label-text mt-2">
+                Get a single-use backup code so you can log in to Mirai if you don’t have access to your two-factor authentication options.
+            </p>
+        </div>
+    {% endif %}
+    {% endwith %}
+
+    {% if user.sms_2fa == False %}
+    <div id="sms2faStartModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure SMS 2FA
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#sms2faStartModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800  text-lg font-bold">
+                        Protect your account in just two steps
+                    </p>
+                    <ol class="mt-3 space-y-4 px-4 list-decimal list-inside text-gray-500 ">
+                        <li>
+                            Enter your phone number
+                            <ul class="pl-5 mt-2 space-y-1 list-none list-inside label-text">
+                                <li>
+                                    A SMS with a confirmation code will be sent to your phone number.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Enter the confirmation code
+                            <ul class="pl-5 mt-2 space-y-1 list-none list-inside label-text">
+                                <li>Two-factor authentication will then be turned on for SMS, which you can turn off at any time.</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#sms2faInputModal">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="sms2faInputModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure SMS 2FA
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#sms2faInputModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <form id="sms2faForm">
+                    <div class="px-8 py-4 overflow-y-auto">
+                        <div id="sms2faError" class="mt-1 hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                            <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            <span class="sr-only">Info</span>
+                            <div id="sms2faErrMsg"></div>
+                        </div>
+                        <p class="mt-3 text-gray-800 text-lg font-bold">
+                            Enter your phone number
+                        </p>
+                        <div class="mt-3 form-control w-full h-[280px]">
+                            <input id="sms2faPhoneNum" type="tel" name="sms2faPhoneNum" class="input input-bordered w-full border border-gray-700 bg-white" required>
+                        </div>
+                    </div>
+                    <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                        <button type="button" class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main" id="sms2faPhoneNumBtn">
+                            Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="sms2faCodeModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure SMS 2FA
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#sms2faCodeModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <form id="sms2faCodeForm">
+                    <div class="px-8 py-4 overflow-y-auto">
+                        <div id="sms2faCodeError" class="mt-1 hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                            <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            <span class="sr-only">Info</span>
+                            <div id="sms2faCodeErrMsg"></div>
+                        </div>
+                        <p class="mt-3 text-gray-800 text-lg font-bold">
+                            Enter the confirmation code
+                        </p>
+                        <p class="mt-3 text-gray-500">
+                            You should have received a code via SMS on your phone. Please enter the confirmation code from your phone to continue. Otherwise, you can go back to the <button type="button" class="text-blue-500 hover:underline" data-hs-overlay="#sms2faInputModal">previous step</button> to restart the process or you can click <button type="button" class="text-blue-500 hover:underline" id="resendSms2faCode">here</button> to resend the code.
+                        </p>
+                        <div class="mt-3 form-control w-full h-[280px]">
+                            <input id="sms2faCodeInput" type="text" name="sms2faCodeInput" minlength="6" maxlength="6" class="input input-bordered w-full bg-white border border-gray-700" required>
+                        </div>
+                    </div>
+                    <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                        <button type="submit" class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main">
+                            Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="sms2faConfirmModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure SMS 2FA
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#sms2faConfirmModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        You're all set!
+                    </p>
+                    <div class="text-gray-500">
+                        <p class="mt-3">
+                            Now you can use your phone to get an authentication code via SMS any time you log in to Mirai.
+                        </p>
+                        <p class="mt-3">
+                            Save this single-use backup code in a safe place.
+                        </p>
+                        <p class="mt-3" id="sms2faBackupCode"></p>
+                        <p class="mt-3">
+                            This backup code lets you log in to Mirai if you don't have access to any of your other two-factor authentication methods.
+                        </p>
+                    </div>
+                </div>
+                <div class="py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#sms2faConfirmModal">
+                        Done
+                    </button>
+                    <button class="mt-2 w-full py-3 px-4 rounded-md border border-2 font-semibold bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all" id="getSms2faBackupCodeBtn">
+                        Get Backup Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div id="sms2faRemoveModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Remove SMS 2FA
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#sms2faRemoveModal">
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        Turn off two-factor authentication for SMS?
+                    </p>
+                </div>
+                <div class="py-3 px-4">
+                    <button class="w-full py-3 px-4 rounded-md border border-transparent font-semibold btn-main" id="sms2faRemoveBtn">
+                        Turn Off
+                    </button>
+                    <button class="mt-2 w-full py-3 px-4 rounded-md border border-2 font-semibold bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all" data-hs-overlay="#sms2faRemoveModal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.has_backup_code %}
+    <div id="backupCodeModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Get Backup Code
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#backupCodeModal">
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        If you ever lose access to your device, you can use this single use code to disable your two-factor authentication.
+                    </p>
+                    <p class="w-full text-center mt-5 text-gray-800 text-xl font-bold blur hover:blur-none" id="userBackupCode">
+                        {{ user.backup_code }}
+                    </p>
+                </div>
+                <div class="py-3 px-4">
+                    <button class="w-full py-3 px-4 rounded-md border border-transparent font-semibold btn-main" id="generateNewBackupCodeBtn">
+                        Generate a new backup code
+                    </button>
+                    <button class="mt-2 w-full py-3 px-4 rounded-md border border-2 font-semibold bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all" id="downloadBackupCode">
+                        Get Backup Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user.has_totp %}
+    <div id="authenticatorRemoveModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Remove Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#authenticatorRemoveModal">
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        Turn off two-factor authentication for authentication app?
+                    </p>
+                </div>
+                <div class="py-3 px-4">
+                    <button class="w-full py-3 px-4 rounded-md border border-transparent font-semibold btn-main" id="authenticatorRemoveBtn">
+                        Turn Off
+                    </button>
+                    <button class="mt-2 w-full py-3 px-4 rounded-md border border-2 font-semibold bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all" data-hs-overlay="#authenticatorRemoveModal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div id="getStartedAuthenticatorModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#getStartedAuthenticatorModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800  text-lg font-bold">
+                        Protect your account in just two steps
+                    </p>
+                    <ol class="mt-3 space-y-4 px-4 list-decimal list-inside text-gray-500 ">
+                        <li>
+                            Link an authentication app to your Mirai account
+                            <ul class="pl-5 mt-2 space-y-1 list-none list-inside label-text">
+                                <li>
+                                    Use a compatible authentication app (like Google Authenticator, Authy, etc.) We’ll generate a QR code for you to scan.
+                                </li>
+                            </ul>
+                        </li>
+                        <li>
+                            Enter the confirmation code
+                            <ul class="pl-5 mt-2 space-y-1 list-none list-inside label-text">
+                                <li>Two-factor authentication will then be turned on for authentication app, which you can turn off at any time.</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#authenticatorQrCodeModal">
+                        Get Started
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="authenticatorQrCodeModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#authenticatorQrCodeModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        Link the app to your Mirai account
+                    </p>
+                    <p class="mt-3 text-gray-500">
+                        Use your authentication app to scan this QR code. If you don’t have an authentication app on your device, you’ll need to install one now.
+                    </p>
+                    <img class="my-2 object-contain max-w-80 max-h-80 mx-auto" src="{{ url_for('static', path='img/chat/bocchi-loading.gif') }}" alt="2FA QR Code" id="qrcodeImg">
+                    <div class="text-center">
+                        <button class="text-blue-500 hover:underline" data-hs-overlay="#authenticatorTokenModal">
+                            Can’t scan the QR code?
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#authenticatorSubmitModal">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="authenticatorTokenModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#authenticatorTokenModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        Can’t scan the QR code?
+                    </p>
+                    <p class="mt-3 text-gray-500">
+                        If you can’t scan the QR code with your camera, enter the following code into the authentication app to link it to your Mirai account.
+                    </p>
+                    <div class="bg-gray-200 p-4 my-3">
+                        <div class="hs-tooltip inline-block w-full">
+                            <button type="button" class="hs-tooltip-toggle w-full" id="secretTokenBtn">
+                                <span class="text-black font-bold text-center" id="secretTokenEl"></span>
+                                <span class="hs-tooltip-content hs-tooltip-shown:opacity-100 hs-tooltip-shown:visible opacity-0 transition-opacity inline-block absolute invisible z-10 py-1 px-2 bg-gray-900 text-xs font-medium text-white rounded-md shadow-sm " role="tooltip">
+                                    Copy to clipboard
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="text-blue-500 hover:underline" data-hs-overlay="#authenticatorQrCodeModal">
+                        Try to scan the QR code again
+                    </button>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#authenticatorSubmitModal">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="authenticatorSubmitModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#authenticatorSubmitModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <form id="authenticatorCodeForm">
+                    <div class="px-8 py-4 overflow-y-auto">
+                        <div id="authenticatorError" class="mt-1 hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                            <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            <span class="sr-only">Info</span>
+                            <div id="authenticatorErrMsg"></div>
+                        </div>
+                        <p class="mt-3 text-gray-800 text-lg font-bold">
+                            Enter the confirmation code
+                        </p>
+                        <p class="mt-3 text-gray-500">
+                            You should have linked your account with an authenticator app. Please enter the confirmation code from the app to continue. Otherwise, you can go back to the <button type="button" class="text-blue-500 hover:underline" data-hs-overlay="#authenticatorQrCodeModal">previous step</button> to restart the process.
+                        </p>
+                        <div class="mt-3 form-control w-full">
+                            <input type="text" name="authenticatorCode" placeholder="123456" class="input input-bordered w-full border border-gray-700 bg-white" minlength="6" maxlength="6" required>
+                        </div>
+                    </div>
+                    <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                        <button type="submit" class="w-full py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold btn-main">
+                            Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="authenticatorConfirmedModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]" data-hs-overlay-keyboard="false">
+        <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+                <div class="flex justify-between items-center py-3 px-4 border-b ">
+                    <h3 class="font-bold text-gray-800  text-lg">
+                        Configure Authenticator
+                    </h3>
+                    <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#authenticatorConfirmedModal" data-hs-overlay-close>
+                        <span class="sr-only">Close</span>
+                        <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="px-8 py-4 overflow-y-auto">
+                    <p class="mt-1 text-gray-800 text-lg font-bold">
+                        You're all set!
+                    </p>
+                    <div class="text-gray-500">
+                        <p class="mt-3">
+                            Now you can use the mobile authentication app to get an authentication code any time you log in to Mirai.
+                        </p>
+                        <p class="mt-3">
+                            Save this single-use backup code in a safe place.
+                        </p>
+                        <p class="mt-3" id="backupCode"></p>
+                        <p class="mt-3">
+                            This backup code lets you log in to Mirai if you don't have access to any of your other two-factor authentication methods.
+                        </p>
+                    </div>
+                </div>
+                <div class="py-3 px-4 border-t ">
+                    <button class="w-full py-3 px-4 rounded-md border border-transparent font-semibold btn-main" data-hs-overlay="#authenticatorConfirmedModal">
+                        Done
+                    </button>
+                    <button class="mt-2 w-full py-3 px-4 rounded-md border border-2 font-semibold bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:ring-blue-600 transition-all" id="getBackupCodeBtn">
+                        Get Backup Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+    {% if user.has_backup_code %}
+        const userBackupCode = document.getElementById("userBackupCode");
+        async function backupCodeCallback(reCaptchaToken) {
+            try {
+                const response = await fetch("{{ url_for('generate_backup_code') }}", {
+                    method: "PATCH", 
+                    headers: {
+                        "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        recaptcha_token: reCaptchaToken,
+                    }),
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Internal Server Error");
+                }
+                userBackupCode.innerText = data.backup_code;
+            } catch (error) {
+                console.error(error);
+            } finally {
+                grecaptcha.enterprise.reset(genNewBackupCodeWidgetId);
+            }
+        }
+
+        const downloadBackupCode = document.getElementById("downloadBackupCode");
+        // download backup code as a text file
+        downloadBackupCode.addEventListener("click", () => {
+            const element = document.createElement("a");
+            const backupCodeValue = userBackupCode.innerText;
+            const file = new Blob([backupCodeValue], {type: "text/plain"});
+            element.href = URL.createObjectURL(file);
+            element.download = "{{ user.username }}_backup_code.txt";
+            document.body.appendChild(element);
+            element.click();
+        })
+    {% endif %}
+
+    {% if user.has_totp %}
+        const authenticatorRemoveBtn = document.getElementById("authenticatorRemoveBtn");
+        const authenticatorRemoveModal = document.getElementById("authenticatorRemoveModal");
+        authenticatorRemoveBtn.addEventListener("click", () => {
+            fetch("{{ url_for('remove_two_fa_token') }}", {
+                method: "DELETE",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+            }).then(() => {
+                location.reload();
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+        });
+    {% else %}
+        const qrcodeImg = document.getElementById("qrcodeImg");
+        const secretTokenEl = document.getElementById("secretTokenEl");
+        const authenticatorQrCodeModal = document.getElementById("authenticatorQrCodeModal");
+        authenticatorQrCodeModal.addEventListener("open.hs.overlay", async () => {
+            if (!qrcodeImg.src.endsWith("{{ url_for('static', path='img/chat/bocchi-loading.gif') }}")) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    "{{ url_for('generate_two_fa_token') }}",
+                    {method: "GET"},
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Internal Server Error");
+                }
+                qrcodeImg.src = data.qrcode_data;
+                secretTokenEl.innerText = data.secret_token;
+            } catch (error) {
+                console.error(error);
+            }
+        })
+
+        const secretTokenBtn = document.getElementById("secretTokenBtn");
+        const secretTokenTooltip = secretTokenBtn.querySelector("[role='tooltip']");
+        secretTokenBtn.addEventListener("click", () => {
+            secretTokenTooltip.innerText = "Copied to clipboard!";
+            navigator.clipboard.writeText(secretTokenEl.innerText);
+        })
+        secretTokenBtn.addEventListener("mouseleave", () => {
+            secretTokenTooltip.innerText = "Copy to clipboard";
+        })
+
+        const authenticatorConfirmedModal = document.getElementById("authenticatorConfirmedModal");
+        authenticatorConfirmedModal.addEventListener("close.hs.overlay", () => {
+            location.reload();
+        })
+
+        const authenticatorError = document.getElementById("authenticatorError");
+        const authenticatorErrMsg = document.getElementById("authenticatorErrMsg");
+        const backupCode = document.getElementById("backupCode");
+        const authenticatorCodeForm = document.getElementById("authenticatorCodeForm");
+        const authenticatorCodeInput = authenticatorCodeForm.querySelector("input");
+        authenticatorCodeForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!authenticatorCodeForm.checkValidity()) {
+                authenticatorCodeForm.reportValidity();
+                return;
+            }
+
+            const code = authenticatorCodeInput.value;
+            if (code.length !== 6) {
+                console.error("Invalid code, must be 6 digits");
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    "{{ url_for('set_two_fa_token') }}",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                        },
+                        body: JSON.stringify({
+                            two_fa_code: code,
+                            two_fa_token: secretTokenEl.innerText,
+                        }),
+                    },
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    if (response.status == 422) {
+                        throw new Error("Please enter a valid code");
+                    } else if (response.status == 400) {
+                        // user already has 2fa enabled
+                        location.reload();
+                        return;
+                    }
+                    throw new Error(data.error || "Internal Server Error");
+                }
+                authenticatorError.classList.add("hidden");
+                backupCode.innerHTML = data.escaped_backup_code;
+                backupCode.setAttribute("data-backup-code", data.backup_code);
+                HSOverlay.open(authenticatorConfirmedModal);
+            } catch (error) {
+                console.error(error);
+                authenticatorError.classList.remove("hidden");
+                authenticatorErrMsg.innerText = error;
+            }
+        })
+        const getBackupCodeBtn = document.getElementById("getBackupCodeBtn");
+        // download backup code as a text file
+        getBackupCodeBtn.addEventListener("click", () => {
+            const element = document.createElement("a");
+            const backupCodeValue = backupCode.getAttribute("data-backup-code");
+            const file = new Blob([backupCodeValue], {type: "text/plain"});
+            element.href = URL.createObjectURL(file);
+            element.download = "{{ user.username }}_backup_code.txt";
+            document.body.appendChild(element);
+            element.click();
+        })
+    {% endif %}
+
+    {% if user.sms_2fa == False %}
+        const sms2faPhoneNum = document.getElementById("sms2faPhoneNum");
+        function getIp(callback) {
+            return callback("{{ user_country }}" || "sg");
+        }
+        const phoneInput = window.intlTelInput(sms2faPhoneNum, {
+            preferredCountries: ["us", "sg"],
+            initialCountry: "auto",
+            geoIpLookup: getIp,
+            utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.9/js/utils.js",
+        });
+
+        const sms2faError = document.getElementById("sms2faError");
+        const sms2faErrMsg = document.getElementById("sms2faErrMsg");
+        const sms2faForm = document.getElementById("sms2faForm");
+        sms2faForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            grecaptcha.enterprise.execute(sms2faWidgetId);
+        })
+        const sms2faCodeModal = document.getElementById("sms2faCodeModal");
+
+        const sms2faCodeError = document.getElementById("sms2faCodeError");
+        const sms2faCodeErrMsg = document.getElementById("sms2faCodeErrMsg");
+        async function sms2faSetupCallback(captchaToken) {
+            if (!sms2faForm.checkValidity()) {
+                sms2faForm.reportValidity();
+            }
+
+            const phoneNum = phoneInput.getNumber();
+            try {
+                if (!phoneNum) {
+                    throw new Error("Please enter a valid phone number.");
+                }
+                const response = await fetch(
+                    "{{ url_for('setup_phone_sms') }}",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                        },
+                        body: JSON.stringify({
+                            recaptcha_token: captchaToken,
+                            phone_num: phoneNum,
+                        }),
+                    },
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error(data);
+                    if (data.error && data.error.startsWith("We have already sent a code to")) {
+                        sms2faError.classList.add("hidden");
+                        sms2faCodeError.classList.remove("hidden");
+                        sms2faCodeErrMsg.innerText = data.error;
+                        HSOverlay.open(sms2faCodeModal);
+                        return;
+                    } else if (response.status == 422) {
+                        throw new Error("Please enter a valid phone number.");
+                    } else if (response.status == 400) {
+                        // user already has 2fa enabled
+                        location.reload();
+                        return;
+                    }
+                    throw new Error(data.error || "Internal Server Error");
+                }
+                sms2faError.classList.add("hidden");
+                HSOverlay.open(sms2faCodeModal);
+            } catch (error) {
+                console.error(error);
+                sms2faError.classList.remove("hidden");
+                sms2faErrMsg.innerText = error;
+            } finally {
+                grecaptcha.enterprise.reset(sms2faWidgetId);
+            }
+        }
+        const resendSms2faCode = document.getElementById("resendSms2faCode");
+        resendSms2faCode.addEventListener("click", () => {
+            grecaptcha.enterprise.execute(sms2faWidgetId);
+        })
+
+        const sms2faBackupCode = document.getElementById("sms2faBackupCode");
+        const sms2faConfirmModal = document.getElementById("sms2faConfirmModal");
+        const sms2faCodeForm = document.getElementById("sms2faCodeForm");
+        const sms2faCodeInput = document.getElementById("sms2faCodeInput");
+        sms2faCodeForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!sms2faCodeForm.checkValidity()) {
+                sms2faCodeForm.reportValidity();
+                return;
+            }
+
+            const code = sms2faCodeInput.value;
+            if (code.length !== 6) {
+                console.error("Invalid code, must be 6 digits");
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    "{{ url_for('verify_sms_setup') }}",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                        },
+                        body: JSON.stringify({
+                            code: code,
+                        }),
+                    },
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error(data);
+                    if (response.status == 422) {
+                        throw new Error("Please enter a valid code");
+                    } else if (response.status == 400) {
+                        // user already has 2fa enabled
+                        location.reload();
+                        return;
+                    }
+                    throw new Error(data.error || "Internal Server Error");
+                }
+                sms2faCodeError.classList.add("hidden");
+                sms2faBackupCode.innerHTML = data.escaped_backup_code;
+                sms2faBackupCode.setAttribute("data-backup-code", data.backup_code);
+                HSOverlay.open(sms2faConfirmModal);
+            } catch (error) {
+                console.error(error);
+                sms2faCodeError.classList.remove("hidden");
+                sms2faCodeErrMsg.innerText = error;
+            }
+        })
+
+        sms2faConfirmModal.addEventListener("close.hs.overlay", () => {
+            location.reload();
+        })
+
+        const getSms2faBackupCodeBtn = document.getElementById("getSms2faBackupCodeBtn");
+        getSms2faBackupCodeBtn.addEventListener("click", () => {
+            const element = document.createElement("a");
+            const backupCodeValue = sms2faBackupCode.getAttribute("data-backup-code");
+            const file = new Blob([backupCodeValue], {type: "text/plain"});
+            element.href = URL.createObjectURL(file);
+            element.download = "{{ user.username }}_backup_code.txt";
+            document.body.appendChild(element);
+            element.click();
+        })
+    {% else %}
+        const sms2faRemoveBtn = document.getElementById("sms2faRemoveBtn");
+        sms2faRemoveBtn.addEventListener("click", () => {
+            fetch("{{ url_for('remove_sms_two_fa') }}", {
+                method: "DELETE",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+            }).then(() => {
+                location.reload();
+            })
+            .catch((error) => {
+                console.error(error);
+            });
+        });
+    {% endif %}
+</script>
+{% endblock %}

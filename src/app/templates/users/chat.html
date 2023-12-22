@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Chat{% endblock %}
+{% block head %}
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/chat.css') }}">
+    <style>
+        @font-face {
+            font-family: "SadMachine";
+            src: url("{{ url_for('static', path='fonts/SadMachine.ttf') }}");
+        }
+        .message {
+            font-family: "SadMachine";
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<!-- chat box -->
+<div class="h-screen w-full flex antialiased text-gray-800 bg-white overflow-hidden">
+    <div class="flex-1 flex flex-col">
+        <main class="flex-grow flex flex-row min-h-0">
+            <section class="flex flex-col flex-none overflow-auto w-24 lg:max-w-sm md:w-2/5 transition-all duration-300 ease-in-out">
+                <div class="header p-4 flex flex-row justify-between items-center flex-none">
+                    <div class="w-16 h-16 relative flex flex-shrink-0">
+                        <a href="{{ url_for('profile', username=sender.username) }}">
+                            <img class="rounded-full w-full h-full object-cover" alt="Your profile picture" src="{{ sender.profile_image }}" referrerpolicy="no-referrer">
+                        </a>
+                    </div>
+                    <a href="/" class="outline outline-2 outline-main-50 first-letter:block p-5 hidden md:block">
+                        <img src="{{ url_for('static', path='img/logo.webp') }}" alt="Mirai Logo" class="object-cover h-10 w-30 lg:w-15 lg:h-7">
+                    </a>
+                </div>
+                <div class="search-box px-4 pt-4 flex-none">
+                    <div class="relative">
+                        <label>
+                            <input aria-label="disabled input" class="cursor-not-allowed rounded-full py-2 pr-6 pl-10 w-full border border-gray-200 bg-gray-200 focus:bg-white focus:outline-none text-gray-600 focus:shadow-md transition duration-300 ease-in" type="text" value="" placeholder="Search for users" disabled>
+                            <span class="absolute top-0 left-0 mt-2 ml-3 inline-block">
+                                <svg viewBox="0 0 24 24" class="w-6 h-6">
+                                    <path fill="#bbb" d="M16.32 14.9l5.39 5.4a1 1 0 0 1-1.42 1.4l-5.38-5.38a8 8 0 1 1 1.41-1.41zM10 16a6 6 0 1 0 0-12 6 6 0 0 0 0 12z"/>
+                                </svg>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center p-3 relative">
+                    <p class="mx-auto">No users found... It's time to make new friends!</p>
+                </div>
+                <div class="p-2 flex-1 overflow-y-scroll"></div>
+            </section>
+
+            <section class="flex flex-col flex-auto border-l">
+                <div class="chat-body p-4 flex-1 overflow-y-scroll relative">
+                    <div class="absolute bg-white bg-opacity-60 z-10 h-full w-full flex items-center justify-center">
+                        <div class="items-center text-center">
+                            <img class="max-h-60 mx-auto" src="{{ url_for('static', path='img/chat/potaro-sob.gif') }}" alt="Potaro Sobbing filler animated image">
+                            <p class="text-3xl message">> Is anyone there?</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+<script nonce="{{ csp_nonce }}">
+    console.log("%c\
+> Oh -\n\
+> Hi!\n\
+【=◈︿◈=】\n\
+", "font-family: system-ui")
+</script>
+{% endblock %}

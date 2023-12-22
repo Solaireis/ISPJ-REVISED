@@ -1,0 +1,220 @@
+{% extends "users/settings_base.html" %}
+{% block title %}Privacy Settings{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+{% block head %}
+{% endblock %}
+
+{% block setting_title %}
+    Your Privacy
+{% endblock %}
+
+{% block setting_desc %}
+    {% if user.privacy.last_updated is none %}
+    <span id="last-updated" class="text-red-600">
+        <i class="fa fa-exclamation fa-shake"></i>
+        &nbsp;Never updated!
+    </span>
+    {% elif since_last_update > 60 %} {# 2 months #}
+    <span id="last-updated" class="text-red-600">
+        <i class="fa fa-calendar-xmark fa-shake"></i>
+        Last updated {{ user.privacy.last_updated.strftime('%x') }}
+    </span>
+    {% else %}
+    <span id="last-updated" class="text-green-500">
+        <i class="fa fa-calendar-check"></i>
+        Last updated {{ user.privacy.last_updated.strftime('%x') }}
+    </span>
+    {% endif %}
+{% endblock %}
+
+{% block setting_content %}
+
+    {% set get_icon, get_description = {
+        "public": "fa-earth-americas",
+        "followers": "fa-person-circle-check",
+        "disabled": "fa-ban",
+        "request_needed": "fa-envelope-circle-check"
+    }, {
+        "public": "Public",
+        "followers": "Followers Only",
+        "disabled": "Disabled",
+        "request_needed": "Requests"
+    } %}
+
+    {% macro create_dropdown(type, privacy_level, privacy_choices) %}
+        <div class="hs-dropdown relative w-fit">
+            <div class="hs-dropdown-toggle px-4 py-2.5 min-w-[178.75px] bg-main-50 active:bg-main-500 rounded-md text-white cursor-pointer">
+                <i class="fa-solid fa-fw {{ get_icon[privacy_level] }} mr-3"></i>
+                {{ get_description[privacy_level] }}
+            </div>
+    
+            <div id="{{ type }}" class="hs-dropdown-menu rounded min-w-[178.75px] duration transition-opacity duration hidden opacity-0 hs-dropdown-open:opacity-100 z-10 bg-gray-200 cursor-pointer">
+                {% for privacy_level in privacy_choices %}
+                {% set top = "rounded-t" if loop.index == 1 else "" %}
+                {% set bottom = "rounded-b" if loop.reindex == 1 else "" %}
+                <span class="block px-4 py-2 hover:bg-gray-300 {{ top }} {{ bottom }}">
+                    <i class="fa-solid fa-fw {{ get_icon[privacy_level] }} mr-3"></i>
+                    {{ get_description[privacy_level] }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+    {% endmacro %}
+
+    <div class="w-full px-4 flex flex-row justify-between">
+        <div>
+            <p class="font-medium">Followers</p>
+            <p class="label-text mt-2">How do people become your followers?</p>
+        </div>
+        {{ create_dropdown("be_follower", user.privacy.be_follower, ("public", "request_needed")) }}
+    </div>
+    <hr class="my-4">
+
+    <div class="w-full px-4 flex flex-row justify-between">
+        <div>
+            <p class="font-medium">Search Visibility</p>
+            <p class="label-text mt-2">Are you indexed in user searches?</p>
+        </div>
+        {{ create_dropdown("search_indexed", user.privacy.search_indexed, ("public", "followers", "disabled")) }}
+    </div>
+    <hr class="my-4">
+
+    <div class="w-full px-4 flex flex-row justify-between">
+        <div>
+            <p class="font-medium">Chat Messages</p>
+            <p class="label-text mt-2">Who can send you messages directly?</p>
+        </div>
+        {{ create_dropdown("send_direct_messages", user.privacy.send_direct_messages, ("public", "followers", "disabled")) }}
+    </div>
+    <hr class="my-4">
+
+    <div class="w-full px-4 flex flex-row justify-between mb-8">
+        <div>
+            <p class="font-medium">Posts</p>
+            <p class="label-text mt-2">Who can see what you post?</p>
+        </div>
+        {{ create_dropdown("see_posts", user.privacy.see_posts, ("public", "followers")) }}
+    </div>
+
+    <div class="mb-4 px-4">
+        <h1 class="text-gray-700 font-bold tracking-wider text-lg">
+            Profile Visibility
+        </h1>
+        
+    </div>
+    <hr class="mb-4">
+
+    <div class="w-full px-4 flex flex-row justify-between">
+        <div>
+            <p class="font-medium">Location</p>
+            <p class="label-text mt-2">"{{ user.location | truncate }}"</p>
+        </div>
+        {{ create_dropdown("profile_location", user.privacy.profile_location, ("public", "followers")) }}
+    </div>
+    <hr class="my-4">
+
+    <div class="w-full px-4 flex flex-row justify-between">
+        <div>
+            <p class="font-medium">Link</p>
+            <p class="label-text mt-2">
+                "<a href="{{ user.url }}" class="hover:underline cursor-pointer">{{ user.url | truncate }}</a>"
+            </p>
+        </div>
+        {{ create_dropdown("profile_url", user.privacy.profile_url, ("public", "followers")) }}
+    </div>
+    <hr class="my-4">
+
+    {% if setup_incomplete %}
+    <div class="px-4 mb-4 flex flex-row justify-between">
+        <button id="skip-button" class="px-4 py-2.5 rounded-md bg-gray-400 hover:bg-gray-500 transition-colors duration-500 text-white">
+            Skip <i class="fa fa-forward"></i>
+        </button>
+        <button disabled id="submit-button" class="px-4 py-2.5 min-w-[172.25px] rounded-md w-fit btn-main disabled:text-gray-200 disabled:bg-gray-300">
+            Update
+        </button>
+    </div>
+    {% else %}
+    <div class="px-4 mb-4 text-center">
+        <button disabled id="submit-button" class="px-4 py-2.5 min-w-[172.25px] mx-auto rounded-md w-fit btn-main disabled:text-gray-200 disabled:bg-gray-300">
+            Update
+        </button>
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block scripts %}
+
+<script nonce="{{ csp_nonce }}">
+const submitButton = document.getElementById("submit-button")
+const submitValues = {}
+const dataConvert = {
+    "Disabled": "disabled",
+    "Requests": "request_needed",
+    "Followers Only": "followers",
+    "Public": "public"
+}
+
+submitButton.addEventListener("click", () => updatePrivacy())
+document.querySelectorAll(".hs-dropdown-menu > span").forEach(toggle => {
+    toggle.addEventListener("click", () => {
+        const selected = event.target
+        const dropdown = selected.parentElement
+
+        dropdown.previousElementSibling.innerHTML = selected.innerHTML
+        submitValues[dropdown.id] = dataConvert[selected.innerText.trim()]
+        submitButton.removeAttribute("disabled")
+    })
+})
+
+{% if setup_incomplete %}
+skipButton = document.getElementById("skip-button")
+skipButton.addEventListener("click", () => updatePrivacy(skip=true))
+{% endif %}
+
+function updatePrivacy(skip=false) {
+    submitButton.innerHTML = getSpinner("normal", "white")
+    
+    fetch("/api/edit-privacy", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+        },
+        body: skip ? null : JSON.stringify(submitValues)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!skip) {
+            let currentDate = new Date()
+            currentDate = Intl.DateTimeFormat(undefined, {
+                year: "2-digit",
+                month: "2-digit",
+                day: "2-digit"
+            }).format(currentDate)
+            
+            const privacyLastUpdated = document.getElementById("last-updated")
+            privacyLastUpdated.innerHTML = `<i class="fa fa-calendar-check"></i> Last updated ${currentDate}`
+            privacyLastUpdated.classList = ["text-gray-500"]
+        }
+
+        submitButton.innerHTML = "Update"
+        notify(`${data.message}. Redirecting...`)
+        setTimeout(() => location.replace("{{ url_for('settings') }}"), 1000)
+    })
+    .catch(error => {
+        console.error(`Error: ${error}`)
+        submitButton.innerHTML = "Update"
+        notify(error)
+    })
+}
+
+function getSpinner(speed, color) {
+    return `
+    <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>`
+}
+</script>
+{% endblock %}

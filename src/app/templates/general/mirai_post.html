@@ -1,0 +1,402 @@
+{% extends "base_ui.html" %}
+{% block title %}{{ post_user.display_name }} on Mirai{% endblock %}
+{% block head %}
+    {% for image in post_user.post_images %}
+        {% if image["safe_search_annotation"]["adult"] == "VERY_LIKELY" %}
+            {% set SafeSearch = true %}
+        {% endif %}
+    {% endfor %}
+    {% if SafeSearch %}
+        <meta name="rating" content="adult">
+    {% endif %}
+    <meta property="og:title" content="{{ post_user.display_name }} | Mirai">
+    <meta property="og:description" content="View what {{ post_user.display_name }} has posted on Mirai">
+    <meta property="og:url" content="{{ url_for('individual_post', username=post_user.username, post_id=post_id) }}">
+    <meta property="og:type" content="website">
+    <meta name="theme-color" content="#eaa7c7">
+{% endblock %}
+{% block body_class %}{% endblock %}
+
+{% block content %}
+    <!-- Header -->
+    <div class="flex justify-between items-center border-b px-4 py-3 sticky top-0 bg-white  border-l border-r border-gray-200 ">
+        <!-- Title -->
+        <a id="backButton" href="" class=" text-main-50 hover:text-main-900 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="currentColor" class="w-5 h-5" viewBox="0 0 493.578 493.578" aria-hidden="true">
+                <g>
+                    <path d="M487.267,225.981c0-17.365-13.999-31.518-31.518-31.518H194.501L305.35,83.615c12.24-12.24,12.24-32.207,0-44.676   L275.592,9.18c-12.24-12.24-32.207-12.24-44.676,0L15.568,224.527c-6.12,6.12-9.256,14.153-9.256,22.262   c0,8.032,3.136,16.142,9.256,22.262l215.348,215.348c12.24,12.239,32.207,12.239,44.676,0l29.758-29.759   c12.24-12.24,12.24-32.207,0-44.676L194.501,299.498h261.094c17.366,0,31.519-14.153,31.519-31.519L487.267,225.981z"/>
+                </g>
+            </svg>
+            <span class="ml-3">Posts</span>
+        </a>
+        <!-- /Title -->
+    </div>
+    <!-- /Header -->
+
+    <!-- Post Details -->
+    <div id="postInfo">
+    </div>
+    <!-- /Post Details -->
+
+    <!-- Comments Text Box -->
+    <div class="border-b border-gray-200  pb-4 border-l border-r">
+        {% if request.session.get(SESSION_COOKIE) %}
+            <form id="uploadPostComments">
+                <div class="flex flex-shrink-0 p-4 pb-0">
+                    <a href="{{ url_for('profile', username=user.username) }}" class="w-12 flex items-top">
+                        <img class="inline-block h-10 w-10 rounded-full" src="{{ user.profile_image }}" alt="@{{ user.username }} profile picture">
+                    </a>
+                    <div class="w-full p-2">
+                        <textarea id="postTextArea" class="text-gray-900 placeholder-gray-400 w-full h-10 bg-transparent border-0 focus:outline-none resize-none" placeholder="Post Your reply"></textarea>
+                    </div>
+                </div>
+                <div class="w-full flex items-top p-2 text-white pl-14">
+                    <button type="button" id="emojiBtn" class="text-main-500 hover:bg-pink-100 rounded-full p-2">
+                        <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor">
+                            <g>
+                                <path d="M12 22.75C6.072 22.75 1.25 17.928 1.25 12S6.072 1.25 12 1.25 22.75 6.072 22.75 12 17.928 22.75 12 22.75zm0-20C6.9 2.75 2.75 6.9 2.75 12S6.9 21.25 12 21.25s9.25-4.15 9.25-9.25S17.1 2.75 12 2.75z"></path>
+                                <path d="M12 17.115c-1.892 0-3.633-.95-4.656-2.544-.224-.348-.123-.81.226-1.035.348-.226.812-.124 1.036.226.747 1.162 2.016 1.855 3.395 1.855s2.648-.693 3.396-1.854c.224-.35.688-.45 1.036-.225.35.224.45.688.226 1.036-1.025 1.594-2.766 2.545-4.658 2.545z"></path>
+                                <circle cx="14.738" cy="9.458" r="1.478"></circle>
+                                <circle cx="9.262" cy="9.458" r="1.478"></circle>
+                            </g>
+                        </svg>
+                    </button>
+                    <button type="submit" id="postSubmitBtn" class="btn-main rounded-full py-1 px-4 ml-auto mr-1">
+                        <span class="font-bold text-sm">Comment</span>
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <div class="flex flex-shrink-0 p-4 pb-0 text-center">
+                <!-- Make a short message and a login button -->
+                <div class="w-full p-2">
+                    <p class="text-md">You are currently not logged in.</p>
+                    <p class="text-md">Let's get you started by joining Mirai!</p>
+                    <br>
+                    <a href="{{ url_for('login') }}" class="btn-main rounded-full py-2 px-4 mt-2 ml-auto mr-1">
+                        <span class="font-bold text-sm">Login!</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    <!-- /Comments Text Box -->
+
+    <div id="commentsBox">
+    </div>
+
+    <div class="text-center hidden mt-1" id="spinner">
+        <div role="status">
+            <svg aria-hidden="true" class="inline w-8 h-8 mr-2 text-gray-200 animate-spin fill-main-50" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+            </svg>
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+
+    <div id="postDropdown" class="z-[999] hidden text-base list-none bg-white divide-y divide-gray-100 rounded shadow w-44 border-gray-300 border-2">
+        <ul class="py-1" aria-labelledby="postDropdownButton">
+            <li>
+                <button id="copyToClipboardDropdown" class="block w-full px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">Share</button>
+            </li>
+            {% if user.id == post_user.id %}
+            <li>
+                <button id="deletePost" class="block w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+
+    {% include "includes/_image_view.html" %}
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/msg_and_image.js') }}"></script>
+<script nonce="{{ csp_nonce }}" type="module" src="https://cdn.jsdelivr.net/npm/@justinribeiro/lite-youtube@1.4.0/lite-youtube.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/embeds.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/posts.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/time.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="https://cdnjs.cloudflare.com/ajax/libs/crc-32/1.2.2/crc32c.min.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/bundles.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/textarea.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/like_post.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/post_dropdown.js') }}"></script>
+<script nonce="{{ csp_nonce }}">
+    document.getElementById("backButton").onclick = (e) => {
+        e.preventDefault();
+        window.history.back(); // Not a good way to do it honestly but for now
+    }
+</script>
+<script nonce="{{ csp_nonce }}">
+    let blursexualImages = true;
+    let blurViolentImages = true;
+    let blurMemeImages = false;
+    {% if user %}
+        blursexualImages = {{ user.blur_sexual_images | lower }};
+        blurViolentImages = {{ user.blur_violent_images | lower }};
+        blurMemeImages = {{ user.blur_meme_images | lower }};
+    {% endif %}
+
+    const postDiv = document.getElementById("postInfo");
+    const postJson = {{ post_doc | safe }}; 
+    const postRes = getIndivPostHtml(postJson);
+
+    const div = document.createElement("div");
+    div.innerHTML = postRes.html;
+    postDiv.appendChild(div);
+    addImgEvent(postRes.imgViewIds);
+    formatPlyrJs(postRes.plyrJsIds);
+</script>
+
+<script nonce="{{ csp_nonce }}">
+    const textAreaPost = document.getElementById("postTextArea");
+    const emojiBtn = document.getElementById("emojiBtn");
+    if (textAreaPost && emojiBtn) {
+        textareaAutoAdjust(textAreaPost, 100);
+        const picker = createPopup({
+        }, {
+            referenceElement: emojiBtn,
+            triggerElement: emojiBtn,
+            position: "bottom-start",
+            className: "z-[999]",
+        });
+        picker.addEventListener("emoji:select", (event) => {
+            textAreaPost.value += event.emoji;
+        });
+        emojiBtn.addEventListener("click", () => {
+            picker.toggle();
+        });
+    }
+</script>
+
+<!-- Liking the Post -->
+<script nonce="{{ csp_nonce }}">
+    const likeButton = document.getElementById("postLike");
+    const heartButton = document.getElementById("heartButton")
+    const likeCount = document.getElementById("likeCount");
+    const likeCounter = document.getElementById("likeCounter");
+    let hasLiked = {{ has_liked | lower }};
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        if (hasLiked) {
+            setAsLiked(heartButton, likeCount)
+        }
+        likeButton.addEventListener("click", async () => {
+            const url = hasLiked ? "{{ url_for('remove_post_like') }}" : "{{ url_for('add_post_like') }}";
+            const res = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    post_id: postJson._id,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                hasLiked = !hasLiked;
+                hasLiked ? addLike(heartButton, likeCount, likeCounter) : removeLike(heartButton, likeCount, likeCounter);
+                return;
+            }
+        });
+    });
+
+</script>
+
+<script nonce="{{ csp_nonce }}">
+    const textDescription = document.getElementById("postTextArea").value.trim() || null;
+
+    document.getElementById("uploadPostComments").onsubmit = async (e) => {
+        e.preventDefault();
+        let textHash = null;
+        let textChecksum = null;
+        const textDescription = document.getElementById("postTextArea").value.trim() || null;
+        if (!textDescription) {
+            notify("Please enter a description.");
+            return;
+        }
+
+        const postData = {
+            post_id: postJson._id,
+            text: textDescription,
+            md5_checksum: md5hash(textDescription),
+            crc32c_checksum: CRC32C.str(textDescription) >>> 0,
+        };
+        try {
+            const res = await fetch("{{ url_for('upload_post_comment') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify(postData),
+            });
+            const data = await res.json();
+            if (res.status == 200) {
+                location.reload();
+            }
+        } catch (err) {
+            //showHomeError(err.message || err || "Something went wrong.");
+            console.error(err);
+            return;
+        } 
+
+        //postHomeText = textDescription || "";
+        ///postFileHomeUploadBtn.disabled = true;
+        //postFileHomeUploadBtn.innerText = "Posting...";
+        //postFileHomeUploadBtn.classList.add("cursor-not-allowed");
+    } 
+
+</script>
+
+<!--Infinite Scroll-->
+<script nonce="{{ csp_nonce }}">
+    const hasLikedComment = new Map(); 
+    const commentDiv = document.getElementById("commentsBox");
+    let oldestPostID = null;
+    let isFetching = false;
+    let noMorePosts = false;
+    const getPostUrl = "{{ url_for('get_comments') }}";
+
+    const likeCommentsFn = async (postId) => {
+        const postUserLiked = hasLikedComment.get(postId) || false;
+        const url = postUserLiked ? "{{ url_for('remove_comment_like') }}" : "{{ url_for('add_comments_like') }}";
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            body: JSON.stringify({
+                post_id: postId,
+            }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            const heartButtonC = document.getElementById(`heartButton${postId}`);
+            const likeCountC = document.getElementById(`likeCounter${postId}`);
+            hasLikedComment.set(postId, !postUserLiked);
+            hasLikedComment.get(postId) ? addLike(heartButtonC, likeCountC, null) : removeLike(heartButtonC, likeCountC, null);
+            return;
+        }
+    }
+
+
+    async function fetchPosts() {
+        if (isFetching || noMorePosts) {
+            return;
+        }
+
+        spinner.classList.remove("hidden");
+        isFetching = true;
+        try {
+            res = await fetch(
+                oldestPostID != null ? `${getPostUrl}?post_id=${postJson._id}&offset=${oldestPostID}` : `${getPostUrl}?post_id=${postJson._id}`, 
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                },
+            )
+            if (!res.ok) {
+                throw new Error(res.message || res);
+            }
+
+            data = await res.json();
+            if (!data || data.length === 0) {
+                noMorePosts = true;
+                return;
+            }
+            oldestPostID = data[data.length - 1]._id;
+            for (const jsonData of data) {
+                const postRes = getCommentsHtml(jsonData, "{{ user.id }}");
+                const div = document.createElement("div");
+                div.innerHTML = postRes.html;
+                commentDiv.appendChild(div);
+                addImgEvent(postRes.imgViewIds);
+                formatPlyrJs(postRes.plyrJsIds);
+
+                const heartButtonC = document.getElementById(`likeButton${jsonData._id}`);
+                const likeCountC = document.getElementById(`likeCounter${jsonData._id}`);
+                if (jsonData.has_liked){
+                    hasLikedComment.set(jsonData._id, true); 
+                    setAsLiked(document.getElementById(`heartButton${jsonData._id}`), likeCountC);
+                }
+                heartButtonC.addEventListener("click", async () => {
+                    await likeCommentsFn(jsonData._id);
+                });
+                if (jsonData.user_id === "{{ user.id }}"){
+                    document.getElementById(`deleteComment${jsonData._id}`).addEventListener("click", async () => {
+                        await deleteCommentFunc(jsonData._id, commentDiv);
+                    });
+                }
+                const shareButtonIdC = document.getElementById(`copyCommentToClipboard${jsonData._id}`);
+                shareButtonIdC.addEventListener("click", async () => {
+                    await copyFunc(jsonData.post_username, jsonData.post_id);
+                });
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            isFetching = false;
+            spinner.classList.add("hidden");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchPosts();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+        document.addEventListener("scroll", async (e) => {
+            if (isFetching || noMorePosts) {
+                return;
+            }
+
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchPosts();
+            }
+        });
+    });
+</script>
+
+<script nonce="{{ csp_nonce }}">
+    const postId = "{{ post_id }}";
+
+    if (document.getElementById("deletePost")){
+        document.getElementById("deletePost").addEventListener("click", async () => {
+            const res = await fetch("{{ url_for('delete_post') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    post_id: postId,
+                }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                notify("Post Deleted");
+                window.location.href = "{{ url_for('index') }}";
+            }
+        });
+    }
+
+    document.getElementById("copyToClipboardDropdown").addEventListener("click", () => {
+        navigator.clipboard.writeText(document.URL);
+        notify("Link copied to clipboard");
+    });
+    document.getElementById("copyToClipboard").addEventListener("click", () => {
+        navigator.clipboard.writeText(document.URL);
+        notify("Link copied to clipboard");
+    });
+    
+</script>
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base_ui.html" %}
+{% block title %}Create Admin{% endblock %}
+{% block body_class %}bg-gray-100 font-sans leading-normal tracking-normal{% endblock %}
+{% block head %}
+    <script nonce="{{ csp_nonce }}" src="https://www.google.com/recaptcha/enterprise.js?render={{ MIRAI_SITE_KEY }}"></script>
+{% endblock %}
+{% block content %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/common.js') }}"></script>
+
+{% if maintenance_status %}
+<div class="relative w-full xl:w-full flex flex-col h-screen overflow-y-hidden ">
+    <div class="w-600 h-screen overflow-x-hidden  flex flex-col">
+        <div class="w-400   p-6 ">
+            <h1 class="flex w-full text-center text-gray-800 text-2xl font-bold mb-6 ">Maintenance mode active</h1>
+            <h3 class="flex w-full text-center text-gray-800 text-2xl font-bold mb-6 ">Change site to live mode </h3>
+            <div id="error" class="hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <span class="sr-only">Info</span>
+                <div id="errMsg"></div>
+            </div>
+            <form class="flex flex-col md:pb-1" id="registerForm">
+                <div class="flex flex-col pt-4">
+                    <label for="disableName" class="text-lg max-2xl:text-sm">Key in your account username to confirm the changes</label>
+                    <input type="text" id="disableName" minlength="1" placeholder="john_smith" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <button class="g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                data-mdb-ripple-color="light" data-sitekey="{{ MIRAI_SITE_KEY }}" data-action="maintenance_mode_disable" data-callback="disableSite">
+                    disable maintenance mode
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+    function removeWhiteSpaces(value) {
+        return value.replace(/\s/g, "");
+    }
+    const disableName = document.getElementById("disableName");
+        disableName.addEventListener("input", function (e) {
+            disableName.value = removeWhiteSpaces(disableName.value);
+        });
+    async function disableSite(token) {
+        const errorDiv = document.getElementById("error");
+        const errorMsg = document.getElementById("errMsg");
+        const registerForm = document.getElementById("registerForm");
+        if (!registerForm.checkValidity()) {
+            registerForm.reportValidity();
+            grecaptcha.enterprise.reset();
+            return;
+        }
+        const disableNameInput = disableName.value;
+        const data = {
+            username: disableNameInput,
+            recaptcha_token: token,
+        };
+
+        try {
+            const response = await fetch("{{ url_for('api_disable_maintenance') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                credentials: "include",
+                body: JSON.stringify(data)
+            });
+            const jsonData = await response.json();
+            if (!response.ok) {
+                throw Error(jsonData.message || response.statusText);
+            }
+
+            notify(jsonData.message);
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } catch (error) {
+            console.error("Error:", error);
+            errorDiv.classList.remove("hidden");
+            errorMsg.innerText = error.message || "{{ err_msg }}";
+        } finally {
+            grecaptcha.enterprise.reset();
+        }
+    };
+</script>
+{% else %}
+<div class="relative w-full xl:w-full flex flex-col h-screen overflow-y-hidden ">
+    <div class="w-600 h-screen overflow-x-hidden  flex flex-col">
+        <div class="w-400   p-6 ">
+            <h1 class="flex w-full text-center text-gray-800 text-2xl font-bold mb-6 ">Maintenance mode disabled</h1>
+            <h3 class="flex w-full text-center text-gray-800 text-2xl font-bold mb-6 ">Set the site to maintenance mode</h3>
+            <div id="error" class="hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <span class="sr-only">Info</span>
+                <div id="errMsg"></div>
+            </div>
+            <form class="flex flex-col md:pb-1" id="registerForm">
+                <div class="flex flex-col pt-4">
+                    <label for="enableName" class="text-lg max-2xl:text-sm">Key in your account username to confirm the changes</label>
+                    <input type="text" id="enableName" minlength="1" placeholder="john_smith" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <button class="g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                data-mdb-ripple-color="light" data-sitekey="{{ MIRAI_SITE_KEY }}" data-action="maintenance_mode_enable" data-callback="enableSite">
+                    enable maintenance mode
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<script nonce="{{ csp_nonce }}">
+    function removeWhiteSpaces(value) {
+        return value.replace(/\s/g, "");
+    }
+    const enableName= document.getElementById("enableName");
+    enableName.addEventListener("input", function (e) {
+            enableName.value = removeWhiteSpaces(enableName.value);
+        });
+    async function enableSite(token) {
+        const errorDiv = document.getElementById("error");
+        const errorMsg = document.getElementById("errMsg");
+        const registerForm = document.getElementById("registerForm");
+        if (!registerForm.checkValidity()) {
+            registerForm.reportValidity();
+            grecaptcha.enterprise.reset();
+            return;
+        }
+        const enableNameInput = enableName.value;
+        console.log(enableName)
+        const data = {
+            username: enableNameInput,
+            recaptcha_token: token,
+        };
+
+        try {
+            const response = await fetch("{{ url_for('api_enable_maintenance') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                credentials: "include",
+                body: JSON.stringify(data)
+            })
+            const jsonData = await response.json();
+            if (!response.ok) {
+                throw Error(jsonData.message || response.statusText);
+            }
+
+            notify(jsonData.message);
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } catch (error) {
+            console.error("Error:", error);
+            errorDiv.classList.remove("hidden");
+            errorMsg.innerText = error.message || "{{ err_msg }}";
+        } finally {
+            grecaptcha.enterprise.reset();
+        }
+    };
+</script>
+{% endif %}
+{% endblock %}

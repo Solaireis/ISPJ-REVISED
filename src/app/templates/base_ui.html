@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='favicon_180x180.png') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
+        <title>{% block title %}{% endblock %} | Mirai</title>
+        <link rel="stylesheet" href="https://cdn.plyr.io/3.7.3/plyr.css">
+        <script nonce="{{ csp_nonce }}" src="https://cdn.plyr.io/3.7.3/plyr.polyfilled.js"></script>
+        <link href="{{ url_for('filepond_css') }}" rel="stylesheet">
+        <link href="{{ url_for('filepond_plugin_image_preview_css') }}" rel="stylesheet"> 
+        {% block head %}{% endblock %}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+        {% block filepond_grid %}
+            <link rel="stylesheet" href="{{ url_for('static', path='css/filepond_grid.css') }}">
+        {% endblock %}
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('flowbite_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('preline_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('tw_elements_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/common.js') }}"></script>
+        <link rel="stylesheet" href="{{ url_for('static', path='css/tailwind.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}">
+        {% if is_root or is_admin %}
+            <meta name="robots" content="noindex, nofollow">
+        {% endif %}
+    </head>
+    <body class="bg-white h-full">
+        <div class="container mx-auto text-black">
+            <div class="flex flex-row justify-center">
+                {% if is_root %}
+                    {% include "includes/_root_leftbar.html" %}
+                {% elif is_admin %}
+                    {% include "includes/_adm_leftbar.html" %}
+                {% else %}
+                    {% include "includes/_left_sidebar.html" %}
+                {% endif %}
+
+                <!-- Middle -->
+                <div class=" bg-white w-full sm:w-600 xl:w-700 h-full">
+                    <!-- Timeline -->
+                    {% block content %} 
+                    {% endblock %}
+                    <!-- NOTE: Below is a starter template to put in the timeline -->
+                    <!-- <div class="border-b border-gray-200 pb-4 border-l border-r">
+                        <div class="flex flex-shrink-0 p-4 pb-0">
+                            <p>
+                                Test
+                            </p>
+                        </div>
+                    </div> -->
+                    <!-- /Timeline -->
+                </div>
+                <!-- /Middle -->
+
+                {% block footer %} 
+                    {# created a block if there's a need to overwrite #}
+                    {% if is_root %}
+                        {% include "includes/_root_rightbar.html" %}
+                    {% elif is_admin %}
+                        {% include "includes/_adm_rightbar.html" %}
+                    {% else %}
+                        {% include "includes/_right_sidebar.html" %}
+                    {% endif %}
+                {% endblock %}
+        {% if is_root or is_admin %}
+            {# yes weird cus of Eden's sidebars HTML #}
+                </div>
+            </div>
+        {% endif %}
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('filepond_plugin_image_preview_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('filepond_plugin_image_exif_orientation_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('filepond_plugin_file_validate_size_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('filepond_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="https://cdnjs.cloudflare.com/ajax/libs/crc-32/1.2.2/crc32c.min.js"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/bundles.js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/textarea.js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/upload_file.js') }}"></script>
+        {% if user %}
+            <!--General Scripts-->
+            <script nonce="{{ csp_nonce }}">
+                // Sidebar Posting
+                const textAreaPostSB = document.getElementById("postDescription");
+                if (textAreaPostSB) {
+                    textareaAutoAdjust(textAreaPostSB, 100);
+                }
+
+                const emojiBtnSB = document.getElementById("emojiBtnSidebar");
+                if (emojiBtnSB) {
+                    const picker = createPopup({
+                    }, {
+                        referenceElement: emojiBtnSB,
+                        triggerElement: emojiBtnSB,
+                        position: "top-start",
+                        // Sidebar emoji button positon = Wrong index
+                        className: "z-[999]",
+                    });
+                    picker.addEventListener("emoji:select", (event) => {
+                        textAreaPostSB.value += event.emoji;
+                    });
+                    emojiBtnSB.addEventListener("click", () => {
+                        picker.toggle();
+                    });
+                }
+
+                const imageBtnSB = document.getElementById("imageBtnSidebar");
+                const imageInputSB = document.getElementById("fileInputContainerSidebar");
+                if (imageInputSB) {
+                    const imageInputSBClass = imageInputSB.classList;
+                    if (imageBtnSB) {
+                        imageBtnSB.addEventListener("click", () => {
+                            if (imageInputSBClass.contains("hidden")) {
+                                imageInputSBClass.replace("hidden", "block");
+                            } else {
+                                imageInputSBClass.replace("block", "hidden");
+                            }
+                        });
+                    }
+                }
+            </script>
+
+            <!--Post Script-->
+            <script nonce="{{ csp_nonce }}">
+                FilePond.registerPlugin(
+                    FilePondPluginImagePreview, 
+                    FilePondPluginImageExifOrientation, 
+                    FilePondPluginFileValidateSize, 
+                );
+                let errorUploadMsgSB;
+                let uploadTokenSB;
+                let postSBText = "";
+                const postInput = document.getElementById("fileUploadInputPost");
+                const uploadPostModal = document.getElementById("uploadPostModal");
+                const postDesc = document.getElementById("postDescription");
+
+                if (postInput) {
+                    const pondPost = FilePond.create(postInput);
+                    pondPost.setOptions({
+                        server: {
+                            process: async (fieldName, file, metadata, load, error, progress, abort) => {
+                                try {
+                                    const formDataFunction = () => {
+                                        const formData = new FormData();
+                                        formData.append("author", "{{ user.id }}");
+                                        return formData;
+                                    }
+                                    await uploadChunks(
+                                        "{{ url_for('upload_post') }}",
+                                        file,
+                                        metadata,
+                                        {{ MAX_CHUNK_SIZE }},
+                                        formDataFunction,
+                                        uploadTokenSB,
+                                        progress,
+                                    );
+                                } catch (err) {
+                                    uploadTokenSB = null;
+                                    errorUploadMsgSB = err.message;
+                                    console.error(err);
+                                    resetSBPostBtn();
+                                    error(err);
+                                    return;
+                                }
+
+                                load("File uploaded successfully.");
+                            },
+                        },
+                        labelFileProcessingError: () => {
+                            return errorUploadMsgSB || "Something went wrong.";
+                        },
+                        onprocessfiles: async () => {
+                            // all files has been uploaded
+                            uploadTokenSB = null;
+                            location.reload();
+                        },
+                        storeAsFile: true,
+                        allowMultiple: true,
+                        allowRevert: false,
+                        instantUpload: false,
+                        allowProcess: false,
+                        maxParallelUploads: 4,
+                        maxFiles: 4,
+                        maxFileSize: {{ user.mirai_plus | lower }} ? "1000MB" : "500MB",
+                        labelIdle: "Drag & Drop your files or  <span class='filepond-label-action'> Browse </span>",
+                    });
+
+                    uploadPostModal.addEventListener("close.hs.overlay", () => {
+                        pondPost.removeFiles();
+                        postDesc.value = "";
+                        uploadTokenSB = null;
+                    });
+
+                    const resetSBPostBtn = () => {
+                        postFileSBUploadBtn.disabled = false;
+                        postFileSBUploadBtn.innerText = "Post";
+                        postFileSBUploadBtn.classList.remove("cursor-not-allowed");
+                    }
+                    const showSBError = (errMsg) => {
+                        postDesc.value = errMsg;
+                        postFileSBUploadBtn.innerText = "Uh Oh!";
+                        postDesc.classList.remove("border-0");
+                        postDesc.classList.add("border-red-500");
+                        postDesc.classList.add("border-2");
+                        postDesc.classList.add("cursor-not-allowed");
+                        setTimeout(() => {
+                            resetSBPostBtn();
+                            postDesc.value = postSBText;
+                            postDesc.classList.add("border-0");
+                            postDesc.classList.remove("border-red-500");
+                            postDesc.classList.remove("border-2");
+                            postDesc.classList.remove("cursor-not-allowed");
+                        }, 3000);
+                    };
+                    const postFileSBUploadBtn = document.getElementById("postSBSubmitBtn");
+                    document.getElementById("uploadPostForm").onsubmit = async (e) => {
+                        e.preventDefault();
+                        let textHash = null;
+                        let textChecksum = null;
+                        const textDescription = postDesc.value.trim() || null;
+                        const uploadedFiles = pondPost.getFiles();
+                        if (uploadedFiles.length == 0 && !textDescription)
+                            return;
+
+                        postFileSBUploadBtn.disabled = true;
+                        postFileSBUploadBtn.innerText = "Posting...";
+                        postFileSBUploadBtn.classList.add("cursor-not-allowed");
+                        postSBText = textDescription || "";
+                        if (uploadedFiles.length > 0) {
+                            let hasVideo = false;
+                            let hasImage = false;
+                            let hasInvalidFile = false;
+                            for (const file of uploadedFiles) {
+                                const fileType = file.fileType;
+                                if (fileType.startsWith("video")) {
+                                    hasVideo = true;
+                                } else if (fileType.startsWith("image")) {
+                                    hasImage = true;
+                                } else {
+                                    hasInvalidFile = true;
+                                }
+                            }
+                            if ((hasVideo && hasImage) || hasInvalidFile) {
+                                showSBError("You can only either upload a video or up to 4 images at once.");
+                                return;
+                            }
+                            if (hasVideo && uploadedFiles.length > 1) {
+                                showSBError("You can only upload a single video at once."); 
+                                return;
+                            }
+
+                            try {
+                                removeDuplicateFilename(uploadedFiles);
+                                uploadTokenSB = await fetchUploadId(
+                                    "{{ url_for('get_upload_id') }}",
+                                    "{{ user.id }}",
+                                    uploadedFiles.length,
+                                    textDescription,
+                                    "post",
+                                );
+                            } catch (err) {
+                                console.error(err);
+                                showSBError(err.message || err || "Something went wrong.");
+                                return;
+                            }
+
+                            pondPost.processFiles();
+                        } else {
+                            const postData = {
+                                text: textDescription,
+                                md5_checksum: md5hash(textDescription),
+                                crc32c_checksum: CRC32C.str(textDescription) >>> 0,
+                            };
+                            try {
+                                const res = await fetch("{{ url_for('upload_post_text') }}", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                                    },
+                                    body: JSON.stringify(postData),
+                                });
+                                if (res.redirected && window.location.pathname == "{{ url_for('privacy_settings') }}") {
+                                    throw new Error("Privacy setup incomplete.")
+                                }
+                                const data = await res.json();
+                                if (res.status == 200) {
+                                    location.reload();
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                showSBError(err.message || err || "Something went wrong.");
+                            }
+                        }
+                    } 
+                }
+            </script>
+        {% endif %}
+
+        {% block scripts %}
+        {% endblock %}
+    </body>
+</html>

@@ -1,0 +1,49 @@
+{% extends "errors/error_base.html" %}
+
+{% block content %}
+    <span class="text-gray-500 text-6xl block">
+        <span>
+            <h1>{{ username }}</h1>
+        </span>
+    </span>
+    <p>
+        <span class="text-gray-500 text-xl">Hi your administrator account have been</span>
+        <span class="text-red-500 text-xl">locked</span>
+        <span class="text-gray-500 text-xl">from Mirai! </span>
+    </p>
+    <p>
+        <span class="text-gray-500 text-xl">If our account is not </span>
+        <span class="text-red-500 text-xl">unlocked</span>
+        <span class="text-gray-500 text-xl"> within</span>
+        <span class="text-red-500 text-xl">30</span>
+        <span class="text-gray-500 text-xl"> days your account will be deleted from Mirai.</span>
+    </p>
+    <p>
+        <span class="text-gray-500 text-xl">If you think this is a mistake please contact the administrator:</span>
+    </p>
+    <p>
+        <span class="text-blue-500 text-xl">eden@miraisocial.live</span>
+        <span class="text-gray-500 text-xl"> or</span>
+        <span class="text-blue-500 text-xl">call +65 1234 1234</span>
+    </p>
+    <br>
+    <p>
+        <span class="text-black text-xl dates">Locked on: {{ done_at }}</span>
+    </p>
+    <p>
+        <span class="text-black text-xl">Locked by: {{ done_by }}</span>
+    </p> 
+    {% if reason %} 
+        <p>
+            <span class="text-black text-xl">Reason: {{ reason }}</span>
+        </p> 
+    {% else %}
+        <p>
+            <span class="text-black text-xl">Reason: </span>
+            <span class="text-red-500 text-xl">None was given</span>
+        </p> 
+    {% endif %} 
+    <p>
+        <span class="text-black text-xl">Expiry: {{ expiry }}</span>
+    </p>
+{% endblock %}

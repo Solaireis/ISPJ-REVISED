@@ -1,0 +1,157 @@
+{% extends "users/settings_base.html" %}
+{% block title %}Blocked Users{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+{% block head %}
+{% endblock %}
+
+{% block setting_title %}
+    Blocked Users
+{% endblock %}
+
+{% block setting_desc %}
+    <span class="text-red-600">Warning:</span> Unblocked users will be able to follow you or view your posts, and you will see posts from them.
+{% endblock %}
+
+{% block setting_content %}
+<div id="user-content"></div>
+{% endblock %}
+
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+    const userContentElement = document.getElementById("user-content")
+    let isFetching = false;
+    let noMorePosts = false;
+    let offset = 0;
+
+    async function fetchMore() {
+        if (noMorePosts || isFetching) 
+            return;
+        isFetching = true;
+        userContentElement.insertAdjacentHTML("beforeend", getSpinner("normal", "white"))
+
+        try {
+            const response = await fetch("{{ url_for('get_blocked_users') }}", {
+                method: "GET",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                credentials: "include",
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "Something went wrong");
+            }
+
+            if (data.length < 10) {
+                noMorePosts = true;
+            }
+            userContentElement.lastElementChild.remove()
+            return data;
+        } catch (e) {
+            console.error(e);
+            userContentElement.lastElementChild.remove()
+        }
+    }
+    async function fetchData() {
+        if (noMorePosts || isFetching) 
+            return;
+
+        try {
+            const data = await fetchMore();
+
+            for (const user of data) {
+                userContentElement.insertAdjacentHTML("beforeend", `
+                <div id="user-${user.username}" class="p-5 border-gray-200 flex">
+                    <a href="/profile/${user.username}" class="h-fit">
+                        <img class="w-12 rounded-full" src="${user.profile.image.url}"/>
+                    </a>
+            
+                    <div class="ml-4 w-full">
+                        <div class="flex flex-row justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="font-bold">${user.display_name}</span>
+                                <span class="text-gray-500">@${user.username}</span>
+                            </div>
+                            <button class="text-white bg-red-500 hover:bg-red-600 font-bold rounded-full px-5 py-2.5 transition-colors duration-200 ease-in">
+                                Unblock
+                            </button>
+                        </div>
+                        <div class="pt-1">
+                            ${user.profile.bio}
+                        </div>
+                    </div>
+                </div>`);
+                userContentElement
+                    .lastElementChild
+                    .querySelector("button")
+                    .addEventListener("click", event => unblockUser(event.target, user.username))
+            }
+
+            if (noMorePosts) {
+                userContentElement.insertAdjacentHTML("beforeend", `
+                <hr>
+                <div class="text-gray-500 p-5 text-center">
+                    Looks like you reached the end.
+                </div>
+                <hr>`)
+            }
+            offset += 10;
+        } finally {
+            isFetching = false;
+        }
+    }
+
+    function getSpinner(speed, color) {
+        return `
+        <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>`
+    }
+
+    async function unblockUser(button, username) {
+        button.innerHTML = getSpinner("normal", "white");
+        await fetch(`/api/unblock-user/${username}`, {
+            method: "PUT",
+            headers: {
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (userContentElement.childElementCount === 4) {
+                // <hr> <div> <hr> <div>
+                notify("User unblocked. Redirecting...")
+                setTimeout(() => location.replace("{{ url_for('settings') }}"), 1000);
+            } else {
+                notify("User unblocked.")
+            }
+            const userElement = document.getElementById(`user-${username}`)
+            userElement.classList.add("animate-wipe-up")
+            setTimeout(() => userElement.remove(), 1000)
+            button.innerText = "Unblock";
+        })
+        .catch(error => {
+            console.error(data.message);
+            notify(data.message);
+            button.innerText = "Unblock";
+        })
+    };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchData();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+        window.addEventListener("scroll", async () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchData();
+            }
+        });
+    });
+
+</script>
+{% endblock %}

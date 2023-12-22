@@ -1,0 +1,203 @@
+{% extends "base_ui.html" %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block content %}
+    <div class=" sticky top-0 bg-white border-l border-r border-b border-gray-200 z-[1]">
+        <form id="searchBarForm" action="{{ url_for('search') }}" method="GET" class="flex justify-between items-center px-4 py-3">
+            <div class="relative m-2 w-full">
+                <button type="submit" class="absolute text-gray-600 flex items-center pl-4 h-full cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-mail" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.53 20.47l-3.66-3.66C19.195 15.24 20 13.214 20 11c0-4.97-4.03-9-9-9s-9 4.03-9 9 4.03 9 9 9c2.215 0 4.24-.804 5.808-2.13l3.66 3.66c.147.146.34.22.53.22s.385-.073.53-.22c.295-.293.295-.767.002-1.06zM3.5 11c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5-7.5-3.365-7.5-7.5z"></path>
+                    </svg>
+                </button>
+                <input type="hidden" name="search_type" value="{{ search_type }}">
+                <input id="searchInput" class="w-full bg-gray-200  border-gray-200  text-gray-800 focus:bg-gray-100 focus:outline-none focus:border focus:border-main-200 font-normal h-9 flex items-center pl-12 text-sm rounded-full border shadow" placeholder="Search Mirai" name="q" value="{{ query }}" minlength="1">
+            </div>
+        </form>
+        <ul class="flex justify-evenly">
+            <a id="postQuery" href="{{ url_for('search') + '?q=' + query + '&search_type=post' }}" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200">
+                <li>
+                    <span class="font-bold">Latest</span>
+                    {% if search_type == "post" %}
+                        <div class="absolute bottom-0 w-14 border-b-[3px] border-main-50"></div>
+                    {% endif %}
+                </li>
+            </a>
+            <a id="commentQuery" href="{{ url_for('search') + '?q=' + query + '&search_type=comment' }}" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200">
+                <li>
+                    <span class="font-bold text-gray-600 ">Comments</span>
+                    {% if search_type == "comment" %}
+                        <div class="absolute bottom-0 w-14 border-b-[3px] border-main-50"></div>
+                    {% endif %}
+                </li>
+            </a>
+            <a id="peopleQuery" href="{{ url_for('search') + '?q=' + query + '&search_type=people' }}" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200">
+                <li>
+                    <span class="font-bold text-gray-600 ">People</span>
+                    {% if search_type == "people" %}
+                        <div class="absolute bottom-0 w-14 border-b-[3px] border-main-50"></div>
+                    {% endif %}
+                </li>
+            </a>
+        </ul>
+    </div>
+
+    <hr>
+    <div id="searchContent"></div>
+    <div class="text-center hidden" id="spinner">
+        <div role="status">
+            <svg aria-hidden="true" class="inline w-8 h-8 mr-2 text-gray-200 animate-spin fill-main-50" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+            </svg>
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    {% include "includes/_image_view.html" %}
+{% endblock %}
+
+{% block footer %} 
+    <div class="hidden md:block w-290 lg:w-350 h-screen border-l border-1">
+        <div class="flex flex-col fixed overflow-y-auto w-290 lg:w-350 h-screen">
+        {% include "includes/_footer.html" %}
+        </div>
+    </div> 
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/time.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/msg_and_image.js') }}"></script>
+<script nonce="{{ csp_nonce }}" type="module" src="https://cdn.jsdelivr.net/npm/@justinribeiro/lite-youtube@1.4.0/lite-youtube.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/embeds.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/posts.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/users.js') }}"></script>
+<script nonce="{{ csp_nonce }}">
+    let blursexualImages = true;
+    let blurViolentImages = true;
+    let blurMemeImages = false;
+    {% if user %}
+        blursexualImages = {{ user.blur_sexual_images | lower }};
+        blurViolentImages = {{ user.blur_violent_images | lower }};
+        blurMemeImages = {{ user.blur_meme_images | lower }};
+    {% endif %}
+
+    const searchInput = document.getElementById("searchInput");
+    const peopleQuery = document.getElementById("peopleQuery");
+    const commentQuery = document.getElementById("commentQuery");
+    const postQuery = document.getElementById("postQuery");
+
+    const searchUrl = "{{ url_for('search') }}";
+    searchInput.addEventListener("input", (e) => {
+        const query =  DOMPurify.sanitize(e.target.value);
+        peopleQuery.setAttribute("href", `${searchUrl}?q=${query}&search_type=people`);
+        postQuery.setAttribute("href", `${searchUrl}?q=${query}&search_type=post`);
+        commentQuery.setAttribute("href", `${searchUrl}?q=${query}&search_type=comment`);
+    });
+
+    let oldestId = null;
+    {% if offset != None %}
+        oldestId = "{{ offset }}";
+    {% endif %}
+
+    const spinner = document.getElementById("spinner");
+    const searchType = "{{ search_type }}";
+    let isFetching = false;
+    let noMorePosts = false;
+    async function fetchMore() {
+        if (noMorePosts || isFetching) 
+            return;
+        isFetching = true;
+
+        // fetch posts using params
+        let url = new URL("{{ url_for('api_search', external=True) }}");
+        url.searchParams.append("q", "{{ query }}");
+        url.searchParams.append("search_type", searchType);
+        if (oldestId) {
+            url.searchParams.append("offset", oldestId);
+        }
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "Something went wrong");
+            }
+
+            if (data.length === 0) {
+                noMorePosts = true;
+                return;
+            }
+            oldestId = data[data.length - 1]._id;
+            return data;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    async function fetchData() {
+        if (noMorePosts || isFetching) 
+            return;
+
+        try {
+            spinner.classList.remove("hidden");
+            const data = await fetchMore();
+            if (!data || data.length === 0) {
+                if (noMorePosts) {
+                    searchContent.insertAdjacentHTML("beforeend", `
+                    <div class="text-gray-500 p-5 text-center">
+                        ${
+                            searchContent.childElementCount ? 
+                            "Looks like you reached the end." : 
+                            `No ${searchType} found.`
+                        }
+                    </div>
+                    <hr>`)
+                }
+                return;
+            }
+
+            for (const jsonData of data) {
+                let htmlStr = "";
+                let imgViewIds = [];
+                let plyrJsIds = [];
+                if (searchType === "post") {
+                    const postRes = getPostHtml(jsonData, "{{ user.id }}");
+                    htmlStr = postRes.html;
+                    imgViewIds = postRes.imgViewIds;
+                    plyrJsIds = postRes.plyrJsIds;
+                } else if (searchType === "comment") {
+                    const commentRes = getCommentsHtml(jsonData);
+                    htmlStr = commentRes.html;
+                    imgViewIds = commentRes.imgViewIds;
+                    plyrJsIds = commentRes.plyrJsIds;
+                } else if (searchType === "people") {
+                    htmlStr = getUserHtml(jsonData);
+                }
+                const div = document.createElement("div");
+                div.innerHTML = htmlStr;
+                searchContent.appendChild(div);
+                addImgEvent(imgViewIds);
+                formatPlyrJs(plyrJsIds);
+            }
+        } finally {
+            isFetching = false;
+            spinner.classList.add("hidden");
+        }
+    }
+
+    document.querySelector("title").innerText = "{{ query }} - Mirai Search";
+    const searchContent = document.getElementById("searchContent");
+    document.addEventListener("DOMContentLoaded", async () => {
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchData();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+        window.addEventListener("scroll", async () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchData();
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', path='favicon_180x180.png') }}">
+        <link rel="shortcut icon" href="{{ url_for('static', path='favicon.ico') }}">
+        <title>{% block title %}{% endblock %} | Mirai</title>
+        {% block head %}{% endblock %}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('flowbite_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('preline_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('tw_elements_js') }}"></script>
+        <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/common.js') }}"></script>
+        <link rel="stylesheet" href="{{ url_for('static', path='css/tailwind.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', path='css/common.css') }}">
+    </head>
+    <body class="{% block body_class %}{% endblock %} text-black">
+        {% block content %}
+        {% endblock %}
+    </body>
+</html>

@@ -1,0 +1,187 @@
+{% extends "users/settings_base.html" %}
+{% block title %}Mirai Plus{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+{% block head %}
+{% endblock %}
+
+{% block setting_title %}
+    Mirai Plus
+{% endblock %}
+
+{% block setting_content %}
+
+
+{% if user.mirai_plus %}
+<div class="px-4 flex">
+    {% set description, width, button_text = 
+        ("Activated", 253.56, "Cancel")
+        if end_date is none
+        else ("Cancelled ({})".format(end_date.strftime('%F')), 103.56, "Resume")
+    %}
+    {% with image_url = url_for("static", path="img/mirai_plus/congrats_background.jpg") %}
+    <div class="h-full w-full bg-cover bg-no-repeat" 
+        style="background-image:url('{{ image_url }}'); height:135.97px;">
+    </div>
+    {% endwith %}
+    <div class="px-5 py-10 flex flex-row justify-between items-end absolute">
+        <span class="fa text-xl tracking-wider">
+            Mirai+<br>
+            <span class="text-main-900">{{ description }}</span>
+        </span>
+        <span style="width:{{ width }}px;"></span>
+        <div class="bg-white text-main-400 hover:bg-gray-100 hover:text-main-500 duration-150 px-5 py-2.5 rounded-md w-fit text-lg cursor-pointer" id="stripe-button">
+            {{ button_text }}
+        </div>
+    </div>
+</div>
+
+<div class="text-center pt-2 mx-auto hidden">
+    Image by
+    <a href="https://www.freepik.com/free-vector/realistic-background-with-balloons-confetti_12290841.htm">
+        <span class="text-main-300 hover:text-main-500 underline">coolvector</span>
+    </a> on Freepik
+</div>
+
+{% else %}
+<div class="flex items-center flex-row justify-center">
+    <img src="{{ url_for('static', path='img/mirai_plus/poster_background.png') }}">
+    <div class="px-10 py-16 flex flex-col items-center absolute">
+        <span class="fa text-xl tracking-wider text-center">
+            Unleash more fun <br>with Mirai+
+        </span>
+        <span class="py-5 text-xl text-center">
+            Only US$5.99/month.<br>Cancel at any time
+        </span>
+        <button class="btn-main px-5 py-2.5 rounded-md w-fit" id="stripe-button">
+            <i class="fa-solid fa-power-off"></i>
+            <span> Subscribe</span>
+        </button>
+    </div>
+</div>
+<div class="text-center pt-2 mx-auto hidden">
+    Image by
+    <a href="https://www.freepik.com/free-psd/gold-abstract-psd-frame-bold-color-memphis-background_18706664.htm">
+        <span class="text-main-300 hover:text-main-500 underline">rawpixel.com</span>
+    </a> on Freepik
+</div>
+{% endif %}
+
+<div class="m-4 relative overflow-x-auto sm:rounded-lg shadow-[0px_0px_2px_1px_rgba(0,0,0,0.2)]">
+    <table class="w-full text-sm text-left text-gray-500">
+        <caption class="m-5 text-lg font-semibold text-gray-900 bg-white">
+            <div class="flex justify-around items-center">
+                <i class="fa-solid fa-lg fa-wand-magic-sparkles fa-bounce mt-2"></i>
+                <div>
+                    Enhance your experience on Mirai.
+                    <p class="mt-1 text-sm font-normal text-gray-500">Browse a list of benefits that come with Mirai Plus.</p>
+                </div>
+                <i class="fa-solid fa-lg fa-rocket fa-bounce mt-2"></i>
+            </div>
+        </caption>
+        <tr class="text-xs text-gray-700 uppercase bg-gray-50 hover:bg-gray-200">
+            <th scope="col" class="px-6 py-3">
+                Features
+            </th>
+            <th scope="col" class="px-6 py-3 text-center">
+                <span class="fa">Mirai</span>
+            </th>
+            <th scope="col" class="px-6 py-3 text-center">
+                <span class="fa text-main-300">Mirai+</span>
+            </th>
+        </tr>
+        {% macro table_row(description, mirai, plus) %}
+        <tr class="bg-white border-b hover:bg-gray-200">
+            <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                {{ description }}
+            </th>
+            <td class="px-6 py-4 text-center">
+                {{ mirai | safe }}
+            </td>
+            <td class="px-6 py-4 text-center">
+                {{ plus | safe }}
+            </td>
+        </tr>
+        {% endmacro %}
+
+        {{ table_row("Image Upload", "10 MB", "20 MB") }}
+        {{ table_row("Video Upload", "500 MB", "1 GB") }}
+        {{ table_row("File Upload", "50 MB", "100 MB") }}
+        {{ table_row("Custom Banner",
+            "<i class=\"fa-solid fa-square-xmark text-red-400\"></i>",
+            "<i class=\"fa-solid fa-square-check text-green-400\"></i>",
+        ) }}
+        {{ table_row("Max Characters (Post)", "280 characters", "400 characters") }}
+        {{ table_row("Max Characters (Chat)", "500 characters", "1000 characters") }}
+    </table>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+const stripeButton = document.getElementById("stripe-button")
+
+{% if user.mirai_plus %}
+    {% if end_date is none %} {# Canceling #}
+    stripeButton.addEventListener("click", async () => {
+        stripeButton.innerHTML = getSpinner("normal", "main");
+        const response = await fetch("{{ url_for('cancel_mirai_plus') }}", {
+            method: "DELETE",
+            headers: {
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+        });
+        const data = await response.json()
+        if (!response.ok) {
+            console.error(data.message);
+            stripeButton.innerHTML = "Cancel"
+        } else {
+            setTimeout(() => location.reload(), 1000)
+        }
+        notify(data.message);
+    })
+    {% else %} {# Resuming #}
+    stripeButton.addEventListener("click", async () => {
+        stripeButton.innerHTML = getSpinner("normal", "main");
+        const response = await fetch("{{ url_for('resume_mirai_plus') }}", {
+            method:"PUT",
+            headers: {
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+        });
+        const data = await response.json()
+        if (!response.ok) {
+            console.error(data.message);
+            stripeButton.innerHTML = "Resume"
+        } else {
+            setTimeout(() => location.reload(), 1000)
+        }
+        notify(data.message);
+    })
+    {% endif %}
+    
+{% else %} {# Subscribing #}
+stripeButton.addEventListener("click", async () => {
+    stripeButton.innerHTML = getSpinner("normal", "main");
+    const response = await fetch("{{ url_for('get_mirai_plus_stripe_link') }}");
+    const data = await response.json()
+    if (!response.ok) {
+        console.error(data.message);
+        stripeButton.innerHTML = `
+        <i class="fa-solid fa-power-off"></i>
+        <span> Subscribe</span>`
+        notify(data.message);
+    } else {
+        location.href = data.url;
+    }
+})
+{% endif %}
+
+function getSpinner(speed, color) {
+    return `
+    <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>`
+}
+</script>
+{% endblock %}

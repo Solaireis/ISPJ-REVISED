@@ -1,0 +1,223 @@
+{% extends "base_ui.html" %}
+{% block title %}People following {{ viewed_user.display_name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block content %}
+<!-- Name and tweet count header -->
+<div class="flex items-center space-x-4 p-1.5">
+    <a href="{{ url_for('profile', username=viewed_user.username) }}" class="inline-flex items-center justify-center rounded-full p-2 transition duration-150 ease-in-out hover:bg-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15m0 0l6.75 6.75M4.5 12l6.75-6.75" />
+        </svg>
+    </a>
+    <div class="flex flex-col items-start">
+        <h2 class="text-xl font-bold tracking-tight">{{ viewed_user.display_name }}</h2>
+        <span class="text-xs text-gray-500 ">@{{ viewed_user.username }}</span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="flex justify-evenly">
+    {% for title in ("followers", "following") %}
+    <li id="click-{{ title }}" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200 ">
+        <span class="font-bold capitalize">{{ title }}</span>
+        {% if current == title %}
+        <div class="absolute bottom-0 w-14 border-b-[3px] border-main-50" id="pink-rectangle"></div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<div id="user-list"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+    let currentContext = "{{ current }}";
+    let isFetching = false;
+    const fetchingMore = {
+        "followers": true,
+        "following": true,
+    };
+    const currentOffset = {
+        "followers": 0,
+        "following": 0,
+    };
+    const cache = {
+        "followers": [],
+        "following": [],
+    };
+    const userList = document.getElementById("user-list");
+
+    async function getMoreFollowers() {
+        isFetching = true
+        try {
+            const response = await fetch(`/api/followers/{{ viewed_user['username'] }}?follower_type=${currentContext}&offset=${currentOffset[currentContext]}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                console.error(`Error: ${error}`);
+                notify(error);
+            }
+
+            const data = await response.json();
+            if (data.length < 10) {
+                fetchingMore[currentContext] = false;
+            }
+            return data;
+        } finally {
+            isFetching = false;
+        }
+        return {}; // TODO: handle error
+    }
+
+    function createUser(user) {
+        userList.insertAdjacentHTML("beforeend", `
+        <div class="p-5 border-gray-200 flex">
+            <a href="/profile/${user.username}" class="h-fit">
+                <img class="w-12 rounded-full" src="${user.profile.image.url}"/>
+            </a>
+
+            <div class="ml-4 w-full">
+                <div class="flex flex-row justify-between">
+                    <div class="flex flex-col">
+                        <span class="font-bold">${user.display_name}</span>
+                        <span class="text-gray-500">@${user.username}</span>
+                    </div>
+                    <a href="/profile/${user.username}" class="text-main-50 hover:text-main-900">
+                        <button class="m-4">
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </button>
+                    </a>
+                </div>
+                <div class="pt-1">
+                    ${user.profile.bio}
+                </div>
+            </div>
+        </div>`);
+    }
+
+    function checkEmpty() {
+        if (fetchingMore[currentContext]) {
+            return;
+        }
+
+        if (cache[currentContext].length == 0) {
+            userList.insertAdjacentHTML("beforeend", `
+            <div class="text-gray-500 p-5 text-center">
+                No users found.
+            </div>`)
+        } else {
+            userList.insertAdjacentHTML("beforeend", `
+            <div class="text-gray-500 p-5 text-center">
+                Looks like you reached the end.
+            </div>`)
+        }
+    }
+
+    async function changeContext() {
+        if (isFetching) {
+            return;
+        }
+
+        const pinkRectangle = document.getElementById("pink-rectangle");
+        pinkRectangle.remove();
+        document.getElementById(`click-${currentContext}`).insertAdjacentElement("beforeend", pinkRectangle);
+
+        userList.innerHTML = `
+        <div class="m-2.5">
+            ${getSpinner("fast", "main")}
+        </div>`
+
+        history.pushState(null, null, `/social/${currentContext}/{{ viewed_user['username'] }}`);
+
+        if (cache[currentContext].length == 0 && fetchingMore[currentContext]) {
+            const data = await getMoreFollowers();
+            for (const user of data) {
+                createUser(user);
+                cache[currentContext].push(user);
+            }
+        } else {
+            cache[currentContext].forEach(createUser)
+        }
+
+        checkEmpty();
+        userList.firstElementChild.remove();
+    }
+
+    function getSpinner(speed, color) {
+        return `
+        <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>`
+    }
+
+    document.getElementById("click-followers").addEventListener("click", async () => {
+        currentContext = "followers";
+        await changeContext();
+    })
+    document.getElementById("click-following").addEventListener("click", async () => {
+        currentContext = "following";
+        await changeContext();
+    })
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        // TODO: check if the code below works
+        while (window.innerHeight >= document.body.offsetHeight && !isFetching && fetchingMore[currentContext]) {
+            // if the user's screen is too tall keep fetching until they can scroll and if fetchingMore[currentContext] is false 
+            userList.insertAdjacentHTML("beforeend", `
+            <div class="m-2.5">
+                ${getSpinner("fast", "main")}
+            </div>`)
+
+            currentOffset[currentContext] = cache[currentContext].length
+            const data = await getMoreFollowers();
+            userList.lastElementChild.remove()
+            for (const user of data) {
+                createUser(user);
+                cache[currentContext].push(user);
+            }
+
+            checkEmpty();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        document.addEventListener("scroll", async (e) => {
+            if (isFetching || !fetchingMore[currentContext]) {
+                return;
+            }
+
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                userList.insertAdjacentHTML("beforeend", `
+                <div class="m-2.5">
+                    ${getSpinner("fast", "main")}
+                </div>`)
+
+                currentOffset[currentContext] = cache[currentContext].length
+                const data = await getMoreFollowers();
+                userList.lastElementChild.remove()
+                for (const user of data) {
+                    createUser(user);
+                    cache[currentContext].push(user);
+                }
+
+                checkEmpty();
+            }
+        });
+    });
+
+
+</script>
+
+
+
+
+{% endblock %}

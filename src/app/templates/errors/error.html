@@ -1,0 +1,7 @@
+{% extends "errors/error_base.html" %}
+
+{% block content %}
+    <span class="text-gray-500 text-6xl block"><span><h1>{{ status_code }}</h1></span></span>
+    <h2>{{ description }}</h2>
+    <span class="text-gray-500 text-xl"> Sorry, We couldn't find what you are looking for!</span>
+{% endblock %}

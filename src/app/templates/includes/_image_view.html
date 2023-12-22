@@ -1,0 +1,11 @@
+<!-- Image view modal from https://www.kindacode.com/article/tailwind-css-how-to-create-image-modals-image-lightboxes/ -->
+<div id="imageViewModal" class="hidden fixed top-0 left-0 z-80 w-full h-screen bg-black/70 flex justify-center items-center flex-col z-20">
+    <button class="fixed z-90 top-6 right-8 text-white text-5xl font-bold" id="imageViewClose">
+        &times;
+        <span class="sr-only">Close image modal</span>
+    </button>
+    <img id="modalImageSrc" class="max-w-2xl" style="max-height: 75%;" src="" alt="Refresh to view again">
+    <a href="" target="_blank" id="imageViewOriginalSrc" class="mt-2 text-white hover:underline">
+        View Original
+    </a>
+</div>

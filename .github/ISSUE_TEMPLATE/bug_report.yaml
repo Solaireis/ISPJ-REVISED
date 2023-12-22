@@ -1,0 +1,67 @@
+name: Bug Report
+description: File a bug report here
+title: "[Bug]: (Enter a short summary of the bug here）"
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! 
+
+  - type: input
+    id: commit_reference
+    attributes:
+      label: Commit Reference
+      description: At what commit did you encounter this bug?
+      placeholder: "[cd3dfed](https://github.com/Solaireis/CWC-ISPJ/commit/cd3dfed01207bfaa71c20b2ea3b7b87c749d66a6)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug_description
+    attributes:
+      label: What is the bug?
+      description: A clear and concise description of what the bug is.
+      placeholder: Registering a new user does not work... etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce the bug
+      description: This will assist in finding where it went wrong.
+      placeholder: Please enter the steps to reproduce the bug that you have encountered...
+      value: |
+              1. 
+              2. 
+              3. 
+              4.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behaviour
+    attributes:
+      label: Expected behaviour
+      description: A clear and concise description of what you expected to happen.
+      placeholder: Explain what should have happened instead...
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_terminal_output
+    attributes:
+      label: Relevant terminal output (If any)
+      description: Please copy and paste the text the error in the terminal that was generated.
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots (Optional)
+      description: Screenshots can be uploaded by simply dragging an image file into this box
+    validations:
+      required: false

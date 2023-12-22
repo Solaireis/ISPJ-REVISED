@@ -1,0 +1,25 @@
+{% extends "errors/error_base.html" %}
+
+{% block content %}
+    <span class="text-gray-500 text-6xl block"><span><h1>{{ username }} </h1></span></span>
+    <p>
+        <span class="text-gray-500 text-xl">Hi you've been  </span>
+        <span class="text-red-500 text-xl">banned</span>
+        <span class="text-gray-500 text-xl"> from Mirai!</span>
+    </p> 
+    <p>
+        <span class="text-gray-500 text-xl">If you think this is a mistake please contact: </span>
+    </p>
+    <p>
+        <span class="text-blue-500 text-xl">support@miraisocial.live</span>
+    </p>
+    </br>
+    <p><span class="text-black text-xl dates">Banned on: {{ done_at }} </span></p>
+    <p><span class="text-black text-xl">Banned by: {{ done_by }} </span></p>
+    {% if reason  %}
+        <p><span class="text-black text-xl">Reason: {{ reason }} </span></p>
+    {% else %}
+        <p><span class="text-black text-xl">Reason: </span><span class="text-red-500 text-xl">None was given</span></p>
+    {% endif %}
+    <p><span class="text-black text-xl">Expiry: {{ expiry }} </span></p>
+{% endblock %}

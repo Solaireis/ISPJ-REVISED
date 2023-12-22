@@ -1,0 +1,146 @@
+{% extends "users/settings_base.html" %}
+{% block title %}Sessions{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block setting_title %}
+    Sessions
+{% endblock %}
+{% block setting_desc %}
+    Manage your active sessions. If you see a session that you don't recognize, you should change your password immediately and revoke the session.
+{% endblock %}
+{% block setting_content %}
+<div class="w-full px-4">
+    <div class="flex items-center justify-between mb-4">
+        <h5 class="text-lg font-bold leading-none text-gray-900 ">
+            You have <span id="sessionCount"></span> sessions
+        </h5>
+        <button type="button" class="py-3 pl-4 inline-flex justify-center items-center gap-2 rounded-md border border-transparent font-semibold text-red-500 focus:outline-none focus:ring-offset-2 transition-all text-sm hover:underline hover:text-red-700" id="revokeAllBtn">
+            Revoke All
+        </button>
+    </div>
+    <div class="flow-root">
+        <ul role="list" class="divide-y divide-gray-200">
+            {% for session in user.sessions | reverse %}
+                {% if session["expiry_date"] > current_datetime %}
+                <li class="py-3 sm:py-4 session-info">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <img class="w-14 h-14" src="{{ browser_str_to_png_url(session['browser']) }}" alt="{{ session['browser'] }} icon">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate ">
+                                {{ session["browser"] }}
+                            </p>
+                            <p class="text-sm text-gray-500 truncate ">
+                                {{ session["os"] }}
+                            </p>
+                            <p class="text-sm text-gray-500 truncate ">
+                                {{ session["ip_address"] }}
+                            </p>
+                            <p class="text-sm text-gray-500 truncate ">
+                                {{ session["location"] }}
+                            </p>
+                            <p class="text-sm text-gray-500 truncate " 
+                                data-timestamp="{{ datetime_to_unix_time(session['added_on']) * 1000 }}"></p>
+                        </div>
+                        {% if request.session[SESSION_COOKIE] != session["session_id"] %}
+                            <div class="inline-flex items-center text-base font-semibold text-gray-900 ">
+                                <button type="button" class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-semibold btn-main" data-session-id="{{ session['session_id'] }}">
+                                    Revoke
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="inline-flex items-center text-base font-semibold text-gray-900 ">
+                                <p class="py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md font-semibold text-green-600">
+                                    Current Session
+                                </p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/time.js') }}"></script>
+<script nonce="{{ csp_nonce }}">
+    const timestampElements = document.querySelectorAll("[data-timestamp]");
+    function formatTimestamps(arr) {
+        for (const el of arr) {
+            const timestamp = parseInt(el.getAttribute("data-timestamp"));
+            el.innerText = formatTimestamp(timestamp, true);
+        }
+    }
+    formatTimestamps(timestampElements);
+    setInterval(() => {
+        const sessionTimestamps = document.querySelectorAll("[data-timestamp]");
+        formatTimestamps(sessionTimestamps);
+    }, 5 * 60 * 1000); // every 5 minutes
+
+    const sessionCount = document.getElementById("sessionCount");
+    sessionCount.innerText = document.querySelectorAll(".session-info").length;
+
+    const revokeSessionBtns = document.querySelectorAll("[data-session-id]");
+    for (const btn of revokeSessionBtns) {
+        btn.addEventListener("click", async () => {
+            try {
+                const sessionId = btn.getAttribute("data-session-id");
+                if (sessionId === "{{ request.session[SESSION_COOKIE] }}") {
+                    return;
+                }
+
+                const res = await fetch("{{ url_for('revoke_session') }}", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                    }),
+                });
+                if (res.status === 200) {
+                    btn.closest("li").remove();
+                    sessionCount.innerText = parseInt(sessionCount.innerText) - 1;
+                } else {
+                    errData = await res.json();
+                    console.error(errData.message || errData);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
+
+    const revokeAllBtn = document.getElementById("revokeAllBtn");
+    revokeAllBtn.addEventListener("click", async () => {
+        // removes all except current session
+        try {
+            const res = await fetch("{{ url_for('revoke_all_sessions') }}", {
+                method: "DELETE",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+            });
+            if (res.status === 200) {
+                const sessionList = document.querySelectorAll("[data-session-id]");
+                for (const session of sessionList) {
+                    if (session.getAttribute("data-session-id") !== "{{ request.session[SESSION_COOKIE] }}") {
+                        session.closest("li").remove();
+                    }
+                }
+                sessionCount.innerText = 1;
+            } else {
+                errData = await res.json();
+                console.error(errData.message || errData);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
+</script>
+{% endblock %}

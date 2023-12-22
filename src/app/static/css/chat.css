@@ -1,0 +1,10 @@
+/* can be configured in tailwind.config.js */
+.group:hover .group-hover\:block {
+    display: block;
+}
+.hover\:w-64:hover {
+    width: 45%;
+}
+.grecaptcha-badge { 
+    visibility: hidden; 
+}

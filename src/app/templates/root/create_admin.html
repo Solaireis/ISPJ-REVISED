@@ -1,0 +1,107 @@
+{% extends "base_ui.html" %}
+{% block title %}Create Admin{% endblock %}
+{% block body_class %}bg-gray-100 font-sans leading-normal tracking-normal{% endblock %}
+{% block head %}
+    <script nonce="{{ csp_nonce }}" src="https://www.google.com/recaptcha/enterprise.js?render={{ MIRAI_SITE_KEY }}"></script>
+{% endblock %}
+{% block content %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/common.js') }}"></script>
+
+<div class="relative w-full xl:w-full flex flex-col h-screen overflow-y-hidden ">
+    <div class="w-600 h-screen overflow-x-hidden  flex flex-col">
+        <div class="w-400   p-6 ">
+            <h1 class="flex w-full text-center text-gray-800 text-2xl font-bold mb-6 ">Register an Admin Account Account via O Auth</h1>
+            <div id="error" class="hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                <span class="sr-only">Info</span>
+                <div id="errMsg"></div>
+            </div>
+            <form class="flex flex-col md:pb-1" id="registerForm">
+                <div class="flex flex-col pt-4">
+                    <label for="name" class="text-lg max-2xl:text-sm">Username</label>
+                    <input type="text" id="name" minlength="1" placeholder="john_smith" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+
+                <div class="flex flex-col wt-4">
+                    <label for="email" class="text-lg max-2xl:text-sm">Email</label>
+                    <input type="email" id="email" minlength="5" placeholder="your@email.com" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <!-- <button class="g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                data-mdb-ripple-color="light"  data-callback="onSubmit">
+                    Register
+                </button> -->
+                <div class="w-full hidden">
+                    <button id="submit-button" class="w-full g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md">
+                        Register
+                    </button>
+                </div>
+                <button class="g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                data-mdb-ripple-color="light"  data-sitekey="{{ MIRAI_SITE_KEY }}" data-action="maintenance_create_admins" data-callback="onRecapchaSubmit">
+                    Register
+                </button>
+
+            </form>
+            
+        </div>
+    </div>
+</div>
+<script nonce="{{ csp_nonce }}">
+    function removeWhiteSpaces(value) {
+        return value.replace(/\s/g, "");
+    }
+    const nameInputRecapcha = document.getElementById("name");
+    nameInputRecapcha.addEventListener("input", function (e) {
+        nameInputRecapcha.value = removeWhiteSpaces(nameInput.value);
+    });
+
+    const emailInputRecapha = document.getElementById("email");
+    const errorDiv = document.getElementById("error");
+    const errorMsg = document.getElementById("errMsg");
+    const registerForm = document.getElementById("registerForm");
+
+    function onRecapchaSubmit(token) {
+        if (!registerForm.checkValidity()) {
+            registerForm.reportValidity();
+            grecaptcha.enterprise.reset();
+            return;
+        }
+
+        const name = nameInputRecapcha.value;
+        const email = emailInputRecapha.value;
+        
+        const data = {
+            username: name,
+            email: email,
+            recaptcha_token: token,
+        };
+
+        fetch("{{ url_for('api_create_admins') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            if (data.status === "success") {
+                window.location.href = "{{ url_for('maintenance_create_admin') }}";
+            } else {
+                notify(data.message);
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            errorDiv.classList.remove("hidden");
+            errorMsg.innerText = "{{ err_msg }}";
+        });
+
+        grecaptcha.enterprise.reset();
+    };
+</script>
+
+{% endblock %}

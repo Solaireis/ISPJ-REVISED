@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block head %}
+    <script nonce="{{ csp_nonce }}" src="https://www.google.com/recaptcha/enterprise.js?render={{ MIRAI_SITE_KEY }}"></script>
+    <script nonce="{{ csp_nonce }}" async src="https://cdn.enzoic.com/js/enzoic.min.js"></script>
+{% endblock %}
+{% block body_class %}bg-white font-family-karla h-screen{% endblock %}
+{% from "includes/_show_password_toggle.html" import show_password_toggle %}
+
+{% block content %}
+    <div class="w-full flex flex-wrap">
+
+        <!-- Register Section -->
+        <div class="w-full lg:w-1/2 flex flex-col">
+
+            <div class="flex justify-center lg:justify-start xl:pt-12 lg:pl-12 lg:-mb-12 lg:pt-5">
+                <a href="/" class="outline outline-2 outline-main-50 p-5">
+                    <img src="{{ url_for('static', path='img/logo.webp') }}" alt="Mirai Logo" class="object-cover h-10 w-30 lg:w-15 lg:h-7">
+                </a>
+            </div>
+
+            <div class="flex flex-col justify-center lg:justify-start xl:my-auto lg:my-0 lg:mt-0 lg:pt-0 px-8 lg:px-24">
+                <p class="text-center text-3xl pt-5 pb-3 md:pb-8 lg:pt-0">Join Us!</p>
+                <div class="text-center pb-2 lg:text-lg max-lg:text-sm">
+                    <p>Already have an account? <a href="{{ url_for('login') }}" class="underline font-semibold text-hover">Log in here.</a></p>
+                </div>
+                <div id="error" class="hidden flex p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                    <svg aria-hidden="true" class="flex-shrink-0 inline w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                    <span class="sr-only">Info</span>
+                    <div id="errMsg"></div>
+                </div>
+                <form class="flex flex-col md:pb-1" id="registerForm">
+                    <div class="flex flex-col pt-4">
+                        <label for="name" class="text-lg max-2xl:text-sm">Username</label>
+                        <input type="text" id="name" minlength="1" placeholder="john_smith" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="email" class="text-lg max-2xl:text-sm">Email</label>
+                        <input type="email" id="email" minlength="5" placeholder="your@email.com" required  class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="flex flex-col pt-4">
+                        <label for="password" class="text-lg max-2xl:text-sm">Password</label>
+                        <div class="relative">
+                            <input type="password" 
+                            enz-enable
+                            enz-min-password-strength="4" 
+                            enz-css-success-class="border-2 border-green-500" 
+                            enz-css-fail-class="border-2 border-rose-500" 
+                            id="password"
+                            minlength="8"
+                            maxlength="64"
+                            required
+                            placeholder="Password" 
+                            class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col py-4">
+                        <label for="confirmPassword" class="text-lg max-2xl:text-sm">Confirm Password</label>
+                        <input type="password" id="confirmPassword" minlength="8" maxlength="64" required  placeholder="Password" class="shadow appearance-none border border-gray-700 bg-white rounded w-full py-2 px-3 text-gray-700 mt-1 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <button class="g-recaptcha btn-main font-bold text-lg py-2 mt-6 rounded-md md:text-md" data-mdb-ripple="true"
+                    data-mdb-ripple-color="light" data-sitekey="{{ MIRAI_SITE_KEY }}" data-action="register" data-callback="onSubmit">
+                        Register
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Image Section -->
+        <div class="w-1/2 shadow-2xl">
+            {% with 
+                random_image = ('Forest_Grass.webp', 'worlds.webp', 'mother.webp')
+                | random
+            %}
+                <img class="object-cover w-full h-screen hidden lg:block" src="{{ url_for('static', path='img/register/' + random_image) }}">
+            {% endwith %}
+        </div>
+    </div>
+
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/password.js') }}"></script>
+    {{ show_password_toggle(csp_nonce, "password", "confirmPassword") }}
+    <script nonce="{{ csp_nonce }}">
+        function removeWhiteSpaces(value) {
+            return value.replace(/\s/g, "");
+        }
+        const nameInput = document.getElementById("name");
+        nameInput.addEventListener("input", function (e) {
+            nameInput.value = removeWhiteSpaces(nameInput.value);
+        });
+
+        const emailInput = document.getElementById("email");
+        const passInput = document.getElementById("password");
+        const passConfirmInput = document.getElementById("confirmPassword");
+        const errorDiv = document.getElementById("error");
+        const errorMsg = document.getElementById("errMsg");
+        const registerForm = document.getElementById("registerForm");
+        function onSubmit(token) {
+            if (!registerForm.checkValidity()) {
+                registerForm.reportValidity();
+                grecaptcha.enterprise.reset();
+                return;
+            }
+
+            // Using https://www.enzoic.com/docs-password-strength-meter/
+            if (Enzoic.currentPasswordScore < Enzoic.PASSWORD_STRENGTH.Strong) {
+                errorDiv.classList.remove("hidden");
+                errorMsg.innerText = "Sorry! The entered password is not strong enough or has been breached.";
+                grecaptcha.enterprise.reset();
+                return;
+            }
+
+            const name = nameInput.value;
+            const email = emailInput.value;
+            const password = passInput.value;
+            const confirmPassword = passConfirmInput.value;
+            if (password !== confirmPassword) {
+                errorDiv.classList.remove("hidden");
+                errorMsg.innerText = "Sorry! The entered passwords do not match. Please try again.";
+                grecaptcha.enterprise.reset();
+                return;
+            }
+
+            const data = {
+                username: name,
+                email: email,
+                password: password,
+                recaptcha_token: token,
+            };
+            fetch("{{ url_for('api_register') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                body: JSON.stringify(data)
+            })
+            .then((res) => {
+                if (res.ok) {
+                    window.location.href = "{{ url_for('login') }}";
+                    return {ok: true};
+                }
+                return res.json();
+            })
+            .then((data) => {
+                if (!data.ok) {
+                    errorDiv.classList.remove("hidden");
+                    let apiErrMsg = data.message;
+                    if (apiErrMsg === undefined) {
+                        apiErrMsg = "{{ validate_err }}";
+                    }
+                    errorMsg.innerText = apiErrMsg;
+                }
+            })
+            .catch((error) => {
+                console.error("Error:", error);
+                errorDiv.classList.remove("hidden");
+                errorMsg.innerText = "{{ err_msg }}";
+            });
+            grecaptcha.enterprise.reset();
+        };
+    </script>
+{% endblock %}

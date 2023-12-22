@@ -1,0 +1,1347 @@
+{% extends "base_ui.html" %}
+{% block title %}{{ user_viewed.display_name }}{% endblock %}
+{% block head %}
+    <meta property="og:title" content="{{ user_viewed.display_name }} | Mirai">
+    <meta property="og:description" content="Look at {{ user_viewed.display_name }}'s profile!">
+    <meta property="og:url" content="{{ url_for('profile', username=user_viewed.username) }}">
+    <meta property="og:type" content="profile">
+    <meta name="theme-color" content="#eaa7c7">
+{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+{% block content %}
+<!-- Name and tweet count header -->
+<div class="flex items-center space-x-4 p-1.5">
+    <a href="/" class="inline-flex items-center justify-center rounded-full p-2 transition duration-150 ease-in-out hover:bg-gray-200 hover:">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15m0 0l6.75 6.75M4.5 12l6.75-6.75" />
+        </svg>
+    </a>
+    <div class="flex flex-col items-start">
+        <h2 class="text-xl font-bold tracking-tight">{{ user_viewed.username }}</h2>
+        <span class="text-xs text-gray-500 ">{{ num_of_posts }} Posts</span>
+    </div>
+</div>
+
+<!-- Header image -->
+<div class="relative">
+    <img src="{{ user_viewed.profile_banner_image }}" id="userBanner" alt="@{{ user_viewed.username }} banner">
+    {% if is_ownself %}
+        <div class="absolute inset-0 flex flex-col justify-center items-center opacity-0 hover:opacity-100">
+            {% if user_viewed.mirai_plus %}
+                <button type="button" class="btn-main rounded-full w-1/2 text-center" data-hs-overlay="#editBannerModal">
+                    <span><i class="fa fa-pencil"></i> Edit Banner Image</span>
+                </button>
+            {% else %}
+                <button type="button" class="btn-main rounded-full w-1/2 text-center cursor-not-allowed" disabled>
+                    <span><i class="fa fa-lock"></i> Get MIRAI+ for more customisation!</span>
+                </button>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<!-- Profile picture and edit button -->
+<div class="flex items-start justify-between px-4 py-3">
+    <div class="justify-start">
+        <div class="-mt-[4.5rem] md:h-32 md:w-32 h-24 w-24 cursor-pointer rounded-full relative">
+            <img class="rounded-full object-cover user-profile-img h-full" src="{{ user_viewed.profile_image }}" alt="@{{ user_viewed.username }} profile picture" referrerpolicy="no-referrer">
+            {% if is_ownself %}
+                <div class="absolute inset-0 flex flex-col justify-center items-center opacity-0 hover:opacity-100">
+                    <button type="button" class="btn-main rounded-full w-1/2 text-center" data-hs-overlay="#editPFPModal">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="justify-end flex items-center justify-between">
+        {% if is_ownself %}
+            <button class="rounded-full border border-gray-300 px-4 py-1.5 font-bold transition duration-150 ease-in-out hover:bg-gray-200" type="button" data-modal-toggle="editProfileModal">
+                Edit Profile
+            </button>
+        {% else %}
+            {% if request.session.get(SESSION_COOKIE) != None %}
+                <div class="hs-dropdown relative inline-flex">
+                    <div class="hs-dropdown-toggle rounded-full border border-gray-300 px-4 py-1.5 font-bold transition duration-150 ease-in-out hover:bg-gray-200 align-middle cursor-pointer">
+                        <i class="fa-solid fa-ellipsis fa-3xl text-gray-600"></i>
+                    </div>
+                    <div class="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden bg-white shadow-md rounded-lg cursor-pointer z-10">
+                        {% if blocked_by == "current" %}
+                        <span id="block-button" class="block px-4 py-2 hover:bg-gray-300 rounded-t ">
+                            Unblock {{ user_viewed.display_name }}
+                        </span>
+                        {% else %}
+                        <span id="block-button" class="block px-4 py-2 hover:bg-gray-300 rounded-t ">
+                            Block {{ user_viewed.display_name }}
+                        </span>
+                        {% endif %}
+                        <span data-modal-toggle="report-modal" class="block px-4 py-2 hover:bg-gray-300 rounded-b text-red-600">
+                            Report {{ user_viewed.display_name }}
+                        </span>
+                    </div>
+                </div>
+            {% endif %}
+            {% if allowed_permissions.send_direct_messages and blocked_by is none %}
+                <div class="rounded-full border border-gray-300 px-4 py-1.5 ml-3 font-bold transition duration-150 ease-in-out hover:bg-gray-200 align-middle cursor-pointer">
+                    <a href="{{ url_for('chat_1_to_1', receiver=user_viewed.id) if request.session.get(SESSION_COOKIE) != None else url_for('login') }}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" class="w-6 h-6">
+                            <g><path d="M1.998 5.5c0-1.381 1.119-2.5 2.5-2.5h15c1.381 0 2.5 1.119 2.5 2.5v13c0 1.381-1.119 2.5-2.5 2.5h-15c-1.381 0-2.5-1.119-2.5-2.5v-13zm2.5-.5c-.276 0-.5.224-.5.5v2.764l8 3.638 8-3.636V5.5c0-.276-.224-.5-.5-.5h-15zm15.5 5.463l-8 3.636-8-3.638V18.5c0 .276.224.5.5.5h15c.276 0 .5-.224.5-.5v-8.037z"></path></g>
+                        </svg>
+                    </a>
+                </div>
+            {% endif %}
+            <span id="social-button" class="ml-3">
+                {% if request.session.get(SESSION_COOKIE) == None %}
+                    <a href="{{ url_for('login') }}">
+                        <button class="rounded-full border border-gray-300 px-4 py-1.5 font-bold transition duration-150 ease-in-out hover:bg-gray-200">
+                            Follow
+                        </button>
+                    </a>
+                {% elif blocked_by is none %}
+                    {% if social_button_type == "requests" %}
+                        <a href= "{{ url_for('followers', follower_type='requests') }}">
+                            <button class="rounded-full px-5 py-2.5 btn-main">
+                                <i class="fa-solid fa-envelope-circle-check"></i>
+                                &nbsp;Sent
+                            </button>
+                        </a>
+                    {% elif social_button_type == "followed" %}
+                        <div class="rounded-full border border-gray-300 px-4 py-1.5 font-bold transition duration-150 ease-in-out hover:bg-gray-200 cursor-pointer">
+                            Unfollow
+                        </div>
+                    {% elif social_button_type == "unfollowed" %}
+                        <div class="text-white bg-gray-800 hover:bg-gray-900 font-bold rounded-full px-5 py-2.5 cursor-pointer">
+                            Follow
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Name and display name -->
+<div class="mt-2 px-4">
+    <h2 class="text-xl font-bold tracking-tight">{{ user_viewed.display_name }}</h2>
+    <span class="text-gray-500 ">@{{ user_viewed.username }}</span>
+</div>
+
+<!-- Bio -->
+<div class="mt-4 px-4">
+    <span class="break-words overflow-auto whitespace-pre-line">{{ user_viewed.bio }}</span>
+</div>
+
+<!-- Location, CTA and join date -->
+<div class="mt-3 flex items-center space-x-4 px-4">
+    {% if allowed_permissions.profile_location or is_ownself %}
+        <div class="flex items-center space-x-1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4 ">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            <span class="text-gray-500 ">{{ user_viewed.location }}</span>
+        </div>
+    {% endif %}
+    {% if allowed_permissions.profile_url or is_ownself %}
+        <div class="flex items-center space-x-1">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4 ">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+            <a class="text-sky-500 hover:underline" href="{{ url_for('redirect_confirmation') }}?url={{ user_viewed.url }}" target="_blank">{{ truncate_text(user_viewed.url, 35) }}</a>
+        </div>
+    {% endif %}
+    <div class="flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-4 w-4 ">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+
+        <span class="text-gray-700"> Joined 
+            <span id="joinedDatetime"></span>
+        </span>
+    </div>
+</div>
+
+<!-- Following/follower count -->
+<div class="mt-3 flex items-center space-x-4 px-4">
+    {% if is_ownself %}
+    {% set follower_url, following_url = 
+        url_for('followers', follower_type='followers'),
+        url_for('followers', follower_type='following'),
+    %}
+    {% else %}
+    {% set follower_url, following_url = 
+        url_for('other_user_followers', follower_type='followers', username=user_viewed.username),
+        url_for('other_user_followers', follower_type='following', username=user_viewed.username),
+    %}
+    {% endif %}
+    <a href="{{ follower_url }}" class="text-gray-700 cursor-pointer hover:underline">
+        <span class="font-bold">{{ user_viewed.follower_list | length }}</span>
+        Followers
+    </a>
+    <a href="{{ following_url }}" class="text-gray-700 cursor-pointer hover:underline">
+        <span class="font-bold">{{ user_viewed.following_list | length }}</span>
+        Following
+    </a>
+</div>
+
+<!-- Tabs -->
+<ul class="mt-3 flex justify-evenly border-b">
+    <li id="postsTab" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200 ">
+        <span id="postsTabText" class="font-bold">Posts</span>
+        <div id="postsTabActive" class="absolute bottom-0 w-14 border-b-[3px] border-main-50"></div>
+    </li>
+    <li id="repliesTab" class="flex relative w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200 ">
+        <span id="repliesTabText" class="font-bold text-gray-600 ">Replies</span>
+        <div id="repliesTabActive" class="hidden absolute bottom-0 w-14 border-b-[3px] border-main-50"></div>
+    </li>
+</ul>
+<!-- Posts -->
+<div id="user_posts"></div>
+<!-- /Posts -->
+
+<!--Modals-->
+<!-- Edit Profile modal -->
+<div id="editProfileModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full [--overlay-backdrop:static]">
+    <div class="relative w-full h-full max-w-md md:h-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow ">
+            <button type="button" class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-toggle="editProfileModal">
+                <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                <span class="sr-only">Reset Modal</span>
+            </button>
+            <div class="px-6 py-6 lg:px-8">
+                <h3 class="mb-4 text-xl font-medium text-gray-900 ">Edit Profile</h3>
+                <form class="flex flex-col" class="space-y-6">
+                    <div class="flex flex-col pt-4">
+                        <label for="displayname" class="text-lg max-lg:text-sm">Display Name</label>
+                        <input type="text" id="displayname" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white">
+                    </div>
+                    <div class="flex flex-col pt-4">
+                        <label for="description" class="text-lg max-lg:text-sm">Bio</label>
+                        <textarea id="description" name="description"
+                        class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white"></textarea>
+                    </div>
+                    <div class="flex flex-col pt-4">
+                        <label for="location" class="text-lg max-lg:text-sm">Location</label>
+                        <input type="text" id="location" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white">
+                    </div>
+                    <div class="flex flex-col pt-4">
+                        <label for="website" class="text-lg max-lg:text-sm">Website</label>
+                        <input type="text" id="website" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white">
+                    </div>
+                    <div
+                    class="modal-footer flex flex-shrink-0 flex-wrap items-center justify-end p-4 border-t border-gray-200 rounded-b-md">
+                        <button type="button" id="onSubmitEdit"
+                            class="inline-block px-6 py-3 btn-main text-white font-medium text-xs leading-tight uppercase rounded-full ml-1" data-mdb-ripple="true"
+                            data-mdb-ripple-color="light">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--Edit Profile Picture Modal-->
+<div id="editPFPModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]">
+    <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto h-[calc(100%-3.5rem)]">
+        <div class="max-h-full overflow-hidden flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+            <div class="flex justify-between items-center py-3 px-4 border-b ">
+                <h3 class="font-bold text-gray-800 ">
+                    Edit Profile Picture
+                </h3>
+                <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#editPFPModal">
+                <span class="sr-only">Close</span>
+                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                </svg>
+                </button>
+            </div>
+            <form id="onSubmitEditPFP">
+                <div class="p-4 overflow-y-auto">
+                    <div class="space-y-4">
+                        <div>
+                            <input id="pfpEdit" type="file" class="filepond" name="file">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button type="button" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium shadow-sm align-middle bg-red-500 hover:bg-red-700 text-white" id="resetPFP">
+                        Reset Profile Image
+                    </button>
+                    <button type="submit" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium shadow-sm align-middle btn-main" id="pfpSubmitBtn">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Banner Picture Modal-->
+<div id="editBannerModal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto [--overlay-backdrop:static]">
+    <div class="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-lg sm:w-full m-3 sm:mx-auto h-[calc(100%-3.5rem)]">
+        <div class="max-h-full overflow-hidden flex flex-col bg-white border shadow-sm rounded-xl   /[.7]">
+            <div class="flex justify-between items-center py-3 px-4 border-b ">
+                <h3 class="font-bold text-gray-800 ">
+                    Edit Banner
+                </h3>
+                <button type="button" class="hs-dropdown-toggle inline-flex flex-shrink-0 justify-center items-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-white transition-all text-sm  " data-hs-overlay="#editBannerModal">
+                <span class="sr-only">Close</span>
+                <svg class="w-3.5 h-3.5" width="8" height="8" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0.258206 1.00652C0.351976 0.912791 0.479126 0.860131 0.611706 0.860131C0.744296 0.860131 0.871447 0.912791 0.965207 1.00652L3.61171 3.65302L6.25822 1.00652C6.30432 0.958771 6.35952 0.920671 6.42052 0.894471C6.48152 0.868271 6.54712 0.854471 6.61352 0.853901C6.67992 0.853321 6.74572 0.865971 6.80722 0.891111C6.86862 0.916251 6.92442 0.953381 6.97142 1.00032C7.01832 1.04727 7.05552 1.1031 7.08062 1.16454C7.10572 1.22599 7.11842 1.29183 7.11782 1.35822C7.11722 1.42461 7.10342 1.49022 7.07722 1.55122C7.05102 1.61222 7.01292 1.6674 6.96522 1.71352L4.31871 4.36002L6.96522 7.00648C7.05632 7.10078 7.10672 7.22708 7.10552 7.35818C7.10442 7.48928 7.05182 7.61468 6.95912 7.70738C6.86642 7.80018 6.74102 7.85268 6.60992 7.85388C6.47882 7.85498 6.35252 7.80458 6.25822 7.71348L3.61171 5.06702L0.965207 7.71348C0.870907 7.80458 0.744606 7.85498 0.613506 7.85388C0.482406 7.85268 0.357007 7.80018 0.264297 7.70738C0.171597 7.61468 0.119017 7.48928 0.117877 7.35818C0.116737 7.22708 0.167126 7.10078 0.258206 7.00648L2.90471 4.36002L0.258206 1.71352C0.164476 1.61976 0.111816 1.4926 0.111816 1.36002C0.111816 1.22744 0.164476 1.10028 0.258206 1.00652Z" fill="currentColor"/>
+                </svg>
+                </button>
+            </div>
+            <form id="onSubmitEditBanner">
+                <div class="p-4 overflow-y-auto">
+                    <div class="space-y-4">
+                        <div>
+                            <input id="bannerEdit" type="file" class="filepond" name="file">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end items-center gap-x-2 py-3 px-4 border-t ">
+                    <button type="button" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium shadow-sm align-middle bg-red-500 hover:bg-red-700 text-white" id="resetBanner">
+                        Reset Banner
+                    </button>
+                    <button type="submit" class="hs-dropdown-toggle py-3 px-4 inline-flex justify-center items-center gap-2 rounded-md border font-medium shadow-sm align-middle btn-main" id="bannerSubmitBtn">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="text-center hidden" id="spinner">
+    <div role="status">
+        <svg aria-hidden="true" class="inline w-8 h-8 mr-2 text-gray-200 animate-spin fill-main-50" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+        </svg>
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+
+{% if request.session.get(SESSION_COOKIE) is not none %}
+    {% if social_button_type in ("followed", "unfollowed") %}
+    <!-- Confirm Unfollow Modal -->
+    <div id="unfollow-modal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+        <div class="hs-overlay-open:opacity-100 hs-overlay-open:duration-500 opacity-0 transition-all w-fit mx-auto flex flex-col items-center relative m-3 md:top-2/4 md:-translate-y-2/4">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl p-8 w-80 max-w-[80vw]">
+                <span class="mb-2 text-xl font-bold break-words">Unfollow {{ user_viewed.display_name }}?</span>
+                <span class="text-sm text-gray-500">
+                    Their posts will no longer show up in your home timeline. You can still view their profile, unless they are protected.
+                </span>
+                <div class="flex flex-col">
+                    <button class="btn normal-case text-white py-2.5 mt-4 border-none rounded-full bg-gray-400 hover:bg-gray-900 transition-colors duration-500 ease-in">
+                        Unfollow
+                    </button>
+                    <button class="btn normal-case btn-main border-none py-2.5 mt-4 rounded-full" data-hs-overlay="#unfollow-modal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if blocked_by == "current" %}
+    <!-- Confirm Unblock Modal -->
+    <div id="block-modal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+        <div class="hs-overlay-open:opacity-100 hs-overlay-open:duration-500 opacity-0 transition-all w-fit mx-auto flex flex-col items-center relative m-3 md:top-2/4 md:-translate-y-2/4">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl p-8 w-80 max-w-[80vw]">
+                <span class="mb-2 text-xl font-bold break-words">Unblock {{ user_viewed.display_name }}?</span>
+                <span class="text-sm text-gray-500">
+                    They will be able to follow you or view your posts, and you will see posts from {{ user_viewed.display_name }}. 
+                </span>
+                <div class="flex flex-col">
+                    <button class="btn normal-case text-white py-2.5 mt-4 border-none rounded-full bg-red-500 hover:bg-red-600 transition-colors duration-200 ease-in">
+                        Unblock
+                    </button>
+                    <button class="btn normal-case btn-main border-none py-2.5 mt-4 rounded-full" data-hs-overlay="#block-modal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Confirm Block Modal -->
+    <div id="block-modal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+        <div class="hs-overlay-open:opacity-100 hs-overlay-open:duration-500 opacity-0 transition-all w-fit mx-auto flex flex-col items-center relative m-3 md:top-2/4 md:-translate-y-2/4">
+            <div class="flex flex-col bg-white border shadow-sm rounded-xl p-8 w-80 max-w-[80vw]">
+                <span class="mb-2 text-xl font-bold break-words">Block {{ user_viewed.display_name }}?</span>
+                {% if public_permissions %}
+                <span class="text-sm text-gray-500">
+                    You will not see posts from {{ user_viewed.display_name }}. 
+                </span>
+                <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 mt-3 text-sm">
+                    <p class="font-bold">You have public permissions.</p>
+                    <p>The blocked user may still have access to some of your content.</p>
+                </div>
+                {% else %}
+                <span class="text-sm text-gray-500">
+                    You will not see posts from {{ user_viewed.display_name }}, and they will not be able to follow you or view your posts.
+                </span>
+                {% endif %}
+                <div class="flex flex-col">
+                    <button class="btn normal-case text-white py-2.5 mt-4 border-none rounded-full bg-red-500 hover:bg-red-600 transition-colors duration-200 ease-in">
+                        Block
+                    </button>
+                    <button class="btn normal-case btn-main border-none py-2.5 mt-4 rounded-full" data-hs-overlay="#block-modal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+{% if not is_ownself %}
+<div id="report-modal" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full [--overlay-backdrop:static]">
+    <div class="relative w-full h-full max-w-md md:h-auto">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow ">
+            <button type="button" class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-toggle="report-modal">
+                <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                <span class="sr-only">Reset Modal</span>
+            </button>
+            <div class="px-6 py-6 lg:px-8">
+                <h3 class="mb-4 text-xl font-medium text-gray-900 ">Gathering Info</h3>
+                <form id="report-form" class="flex flex-col" class="space-y-6">
+                    <div class="flex flex-col pt-4">
+                        <label for="affected" class="text-lg max-lg:text-sm">Who is this report for?</label>
+                        <select id="affected" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white">
+                            <option selected>Myself</option>
+                            <option>Someone else</option>
+                            <option>A specific group of people</option>
+                            <option>Everyone on Mirai</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="reason" class="text-lg max-lg:text-sm">What is happening to you?</label>
+                        <select id="reason" class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white">
+                            <option selected>Spammed</option>
+                            <option>Attacked because of identity</option>
+                            <option>Harassed or intimidated with violence</option>
+                            <option>Impersonated or shown a deceptive identity</option>
+                            <option>Content that encourages self-harm</option>
+                            <option>Sensitive or disturbing content</option>
+                            <option>Dangerous deceptive information</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col pt-4">
+                        <label for="method" class="text-lg max-lg:text-sm">How is @{{ user_viewed.username }} doing this?</label>
+                        <textarea id="method" maxlength="500"
+                        class="w-full px-4 py-2 mt-2 text-gray-700 bg-gray-200 rounded-lg focus:outline-none focus:bg-white"></textarea>
+                    </div>
+                    
+                    <div class="modal-footer flex flex-shrink-0 flex-wrap items-center justify-end p-4 border-t border-gray-200 rounded-b-md">
+                        <button type="button" id="report-submit-button"
+                            class="inline-block px-6 py-3 btn-main text-white font-medium text-xs leading-tight uppercase rounded-full ml-1" data-mdb-ripple="true"
+                            data-mdb-ripple-color="light">
+                            Send Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% include "includes/_image_view.html" %}
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/msg_and_image.js') }}"></script>
+<script nonce="{{ csp_nonce }}" type="module" src="https://cdn.jsdelivr.net/npm/@justinribeiro/lite-youtube@1.4.0/lite-youtube.js"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/embeds.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/posts.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/time.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/like_post.js') }}"></script>
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', path='js/post_dropdown.js') }}"></script>
+<script nonce="{{ csp_nonce}}">
+    const joinedDatetime = document.getElementById("joinedDatetime");
+    joinedDatetime.innerText = getDateFromTimestamp(
+        {{ datetime_to_unix_time(user_viewed.created_at) * 1000 }},
+    );
+</script>
+{% if is_ownself %}
+<!--Script for Edit Profile Details-->
+<script nonce="{{ csp_nonce }}" type="text/javascript">
+    // Pre set existing values 
+    const username = document.getElementById("username");
+    const description = document.getElementById("description");
+    const locationEl = document.getElementById("location");
+    const website = document.getElementById("website");
+    const userMap = new Map(Object.entries({{ user_map | safe }}));
+    const htmlDecode = (input) => {
+        const el = document.createElement("div");
+        el.innerHTML = input;
+        return el.innerText
+    }
+
+    displayname.value = htmlDecode(userMap.get("username"));
+    description.value = htmlDecode(userMap.get("description"));
+    locationEl.value = htmlDecode(userMap.get("location"));
+    website.value = htmlDecode(userMap.get("url"));
+
+    const resetProfileDetails = () => {
+        displayname.value = htmlDecode(userMap.get("username"));
+        description.value = htmlDecode(userMap.get("description"));
+        locationEl.value = htmlDecode(userMap.get("location"));
+        website.value = htmlDecode(userMap.get("url"));
+    }
+
+    document.getElementById("editProfileModal").addEventListener("close.hs.overlay", () => {
+        resetProfileDetails();
+    });
+    const urlRegex = /(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)/g;
+    document.getElementById("onSubmitEdit").onclick = async function() {
+        const newUsername = displayname.value;
+        const newDescription = description.value;
+        const newLocation = locationEl.value;
+        const newWebsite = website.value;
+        if (urlRegex.test(newWebsite) == false) {
+            notify("Please enter a valid URL");
+            return;
+        }
+
+        const data = {
+            username: newUsername,
+            description: newDescription,
+            location: newLocation,
+            website: newWebsite,
+        };
+        res = await fetch("{{ url_for('edit_profile') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            body: JSON.stringify(data)
+        });
+        json = await res.json();
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            notify(json.message);
+        }
+    }
+
+    // Script for Changing User profile picture
+    FilePond.registerPlugin(
+        FilePondPluginImagePreview, 
+        FilePondPluginImageExifOrientation, 
+        FilePondPluginFileValidateSize,
+    );
+
+    let pfpError = "";
+    let pfpUrl = "{{ user_viewed.profile_image }}";
+    const resetProfileImage = (url) => {
+        const profileImages = document.querySelectorAll(".user-profile-img");
+        for (const profileImage of profileImages) {
+            profileImage.src = "";
+            profileImage.src = url || pfpUrl + "?t=" + Date.now();
+        }
+    };
+    const resetFileModalBtns = (btnEl) => {
+        btnEl.disabled = false;
+        btnEl.innerText = "Upload Image";
+        btnEl.classList.remove("cursor-not-allowed");
+    }
+    const resetFileModal = (filePondEl, btnEl) => {
+        filePondEl.removeFiles();
+        resetFileModalBtns(btnEl);
+    }
+
+    let profilePicInput = document.getElementById("pfpEdit");
+    const pfpPost = FilePond.create(profilePicInput);
+    const editPFPModal = document.getElementById("editPFPModal");
+    const pfpFileUploadBtn = document.getElementById("pfpSubmitBtn");
+    document.getElementById("onSubmitEditPFP").onsubmit = async (e) => {
+        e.preventDefault();
+        const filesToUpload = pfpPost.getFiles();
+        if (filesToUpload.length !== 1) {
+            return;
+        }
+
+        pfpFileUploadBtn.disabled = true;
+        pfpFileUploadBtn.innerText = "Uploading...";
+        pfpFileUploadBtn.classList.add("cursor-not-allowed");
+        pfpPost.processFiles();
+    } 
+    pfpPost.setOptions({
+        server: {
+            process: (fieldName, file, metadata, load, error, progress, abort) => {
+                const formData = new FormData();
+                const request = new XMLHttpRequest();
+                const reader = new FileReader();
+                request.open("POST", "{{ url_for('edit_profile_picture') }}");
+                request.setRequestHeader("{{ CSRF_HEADER_NAME }}", getCSRFToken())
+                // Appending Required Form Data
+                formData.append("file", file)
+                // Reader Function for Hashing
+                reader.onload = (e) => {
+                    const buffer = arrayBufferToBuffer(e.target.result);
+                    const fileHash = SHA3Hash(buffer);
+                    formData.append("file_hash", fileHash);
+                    request.send(formData);
+                };
+                reader.readAsArrayBuffer(file);
+                // Hashing Function
+                request.upload.onprogress = (e) => {
+                    progress(e.lengthComputable, e.loaded, e.total);
+                };
+                // request.onload = (response) => {response};
+                request.onload = () => {
+                    if (request.status >= 200 && request.status < 300) {
+                        pfpUrl = JSON.parse(request.responseText).image_url;
+                        load(request.responseText);
+                    } else {
+                        try {
+                            pfpError = JSON.parse(request.responseText);
+                        } catch (e) {
+                            pfpError = {
+                                message: "Something went wrong."
+                            };
+                        }
+                        error(pfpError.message);
+                    }
+                };
+                request.onerror = (response) => {
+                    console.error(response);
+                    resetFileModal(pfpPost, pfpFileUploadBtn);
+                    return response
+                };
+            },
+        },
+        labelFileProcessingError: () => {
+            // replaces the error on the FilePond error label
+            if (pfpError.message == null) {
+                return "Something went wrong.";
+            }
+            resetFileModalBtns(pfpFileUploadBtn);
+            return pfpError.message;
+        },
+        onprocessfiles: async () => {
+            // all files has been uploaded
+            resetProfileImage(null);
+            HSOverlay.close(editPFPModal);
+        },
+        storeAsFile: true,
+        allowMultiple: false,
+        allowRevert: false,
+        instantUpload: false,
+        allowProcess: false,
+        maxFileSize: {{ user.mirai_plus | lower }} ? "1000MB" : "500MB",
+        imageCropAspectRatio: "1:1",
+        imageResizeTargetWidth: 128 ,
+        imageResizeTargetHeight: 128, 
+        //stylePanelLayout: 'compact circle',
+        //styleLoadIndicatorPosition: 'center bottom',
+        //styleButtonRemoveItemPosition: 'center bottom',
+        labelIdle: "Drag & Drop your files or <span class='filepond-label-action'> Browse </span>",
+    });
+    editPFPModal.addEventListener("close.hs.overlay", () => {
+        resetFileModal(pfpPost, pfpFileUploadBtn);
+    });
+
+    // Script for changing Banner
+    let bannerError = "";
+    let bannerInput = document.getElementById("bannerEdit");
+    const userBanner = document.getElementById("userBanner");
+    const bannerPost = FilePond.create(bannerInput);
+    let bannerUrl = "{{ user_viewed.banner_image }}";
+    const bannerFileUploadBtn = document.getElementById("bannerSubmitBtn");
+    document.getElementById("onSubmitEditBanner").onsubmit = async (e) => {
+        e.preventDefault();
+        const filesToUpload = bannerPost.getFiles();
+        if (filesToUpload.length !== 1) {
+            return;
+        }
+
+        bannerFileUploadBtn.disabled = true;
+        bannerFileUploadBtn.innerText = "Uploading...";
+        bannerFileUploadBtn.classList.add("cursor-not-allowed");
+        bannerPost.processFiles();
+    }
+    const editBannerModal = document.getElementById("editBannerModal");
+    bannerPost.setOptions({
+        server: {
+            process: (fieldName, file, metadata, load, error, progress, abort) => {
+                const formData = new FormData();
+                const request = new XMLHttpRequest();
+                const reader = new FileReader();
+                request.open("POST", "{{ url_for('edit_banner_picture') }}");
+                request.setRequestHeader("{{ CSRF_HEADER_NAME }}", getCSRFToken());
+                // Appending Required Form Data
+                formData.append("file", file)
+                // Reader Function for Hashing
+                reader.onload = (e) => {
+                    const buffer = arrayBufferToBuffer(e.target.result);
+                    const fileHash = SHA3Hash(buffer);
+                    formData.append("file_hash", fileHash);
+                    request.send(formData);
+                };
+                reader.readAsArrayBuffer(file);
+                // Hashing Function
+                request.upload.onprogress = (e) => {
+                    progress(e.lengthComputable, e.loaded, e.total);
+                };
+                // request.onload = (response) => {response};
+                request.onload = () => {
+                    if (request.status >= 200 && request.status < 300) {
+                        bannerUrl = JSON.parse(request.responseText).image_url;
+                        load(request.responseText);
+                    } else {
+                        try {
+                            bannerError = JSON.parse(request.responseText);
+                        } catch (e) {
+                            bannerError = {
+                                message: "Something went wrong."
+                            };
+                        }
+                        error(bannerError.message);
+                    }
+                };
+                request.onerror = (response) => {
+                    console.error(response);
+                    resetFileModal(bannerPost, bannerFileUploadBtn);
+                    return response
+                };
+            },
+        },
+        labelFileProcessingError: () => {
+            // replaces the error on the FilePond error label
+            if (bannerError.message == null) {
+                return "Something went wrong.";
+            }
+            resetFileModalBtns(bannerFileUploadBtn);
+            return bannerError.message;
+        },
+        onprocessfiles: async () => {
+            // all files has been uploaded
+            resetFileModal(bannerPost, bannerFileUploadBtn);
+            userBanner.src = "";
+            userBanner.src = bannerUrl + "?t=" + Date.now();
+            HSOverlay.close(editBannerModal);
+        },
+        storeAsFile: true,
+        allowMultiple: false,
+        allowRevert: false,
+        instantUpload: false,
+        allowProcess: false,
+        maxFileSize: {{ user.mirai_plus | lower }} ? "1000MB" : "500MB",
+        imageCropAspectRatio: "16:9",
+        imageResizeTargetWidth: 575,
+        imageResizeTargetHeight: 230, 
+        labelIdle: "Drag & Drop your files or  <span class='filepond-label-action'> Browse </span>",
+    });
+    editBannerModal.addEventListener("close.hs.overlay", () => {
+        resetFileModal(bannerPost, bannerFileUploadBtn);
+    });
+
+    // General scripts
+    document.getElementById("resetBanner").onclick = async () => {
+        try {
+            const res = await fetch("{{ url_for('reset_banner_picture') }}", {
+                method: "POST",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+            });
+            const data = await res.json();
+            userBanner.src = data.image_url;
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    document.getElementById("resetPFP").onclick = async () => {
+        try {
+            const res = await fetch("{{ url_for('reset_profile_picture') }}", {
+                method: "POST",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+            });
+            const data = await res.json();
+            resetProfileImage(data.image_url);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // Add clear files for file input fields
+</script>
+{% endif %}
+
+<!--Infinite Scroll-->
+<script nonce="{{ csp_nonce }}">
+    let blursexualImages = true;
+    let blurViolentImages = true;
+    let blurMemeImages = false;
+    {% if user %}
+        blursexualImages = {{ user.blur_sexual_images | lower }};
+        blurViolentImages = {{ user.blur_violent_images | lower }};
+        blurMemeImages = {{ user.blur_meme_images | lower }};
+    {% endif %}
+
+    const postsTab = document.getElementById("postsTab");
+    const postsTabText = document.getElementById("postsTabText");
+    const postsTabActive = document.getElementById("postsTabActive");
+    const repliesTab = document.getElementById("repliesTab");
+    const repliesTabText = document.getElementById("repliesTabText");
+    const repliesTabActive = document.getElementById("repliesTabActive");
+
+    let initialFetch = true;
+    const hasLiked = new Map(); 
+    const hasLikedComment = new Map(); 
+    const userID = "{{ user_viewed.id }}";
+    const postDiv = document.getElementById("user_posts");
+    let oldestPostID = null;
+    let isFetching = false;
+    let noMorePosts = false;
+    const getUserPostUrl = "{{ url_for('get_post') }}?user_id={{ user_viewed.id }}";
+    const getPostUrl = "{{ url_for('get_comments') }}?user_id={{ user_viewed.id }}";
+
+    const likeFn = async (postId) => {
+        const postUserLiked = hasLiked.get(postId) || false;
+        const url = postUserLiked ? "{{ url_for('remove_post_like') }}" : "{{ url_for('add_post_like') }}";
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            body: JSON.stringify({
+                post_id: postId,
+            }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            const heartButton = document.getElementById(`heartButton${postId}`);
+            const likeCount = document.getElementById(`likeCount${postId}`);
+            hasLiked.set(postId, !postUserLiked);
+            hasLiked.get(postId) ? addLike(heartButton, likeCount, null) : removeLike(heartButton, likeCount, null);
+            return;
+        }
+    }
+
+    const likeCommentsFn = async (postId) => {
+        const postUserLiked = hasLikedComment.get(postId) || false;
+        const url = postUserLiked ? "{{ url_for('remove_comment_like') }}" : "{{ url_for('add_comments_like') }}";
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            body: JSON.stringify({
+                post_id: postId,
+            }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+            const heartButtonC = document.getElementById(`heartButton${postId}`);
+            const likeCountC = document.getElementById(`likeCounter${postId}`);
+            hasLikedComment.set(postId, !postUserLiked);
+            hasLikedComment.get(postId) ? addLike(heartButtonC, likeCountC, null) : removeLike(heartButtonC, likeCountC, null);
+            return;
+        }
+    }
+
+    const resetDiv = () => {
+        postDiv.innerHTML = "";
+        oldestPostID = null;
+        initialFetch = true;
+    }
+
+    async function fetchPosts() {
+        if (noMorePosts || isFetching) {
+            return;
+        }
+
+        spinner.classList.remove("hidden");
+        isFetching = true;
+        try {
+            res = await fetch(
+                oldestPostID != null ? `${getUserPostUrl}&offset=${oldestPostID}` : getUserPostUrl, 
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                },
+            )
+            if (!res.ok) {
+                throw new Error(res.message || res);
+            }
+
+            data = await res.json();
+            if (!data || data.length === 0) {
+                if (initialFetch) {
+                    postDiv.innerHTML = `
+                        <div class="border-b border-gray-200  bg-gray-50  py-2 border-l border-r">
+                            <div class="flex flex-col items-center justify-center text-center p-6 bg-white  border-b border-t border-gray-200 hover:bg-gray-50 transition duration-350 ease-in-out text-blue-400 text-sm">
+                                {% if is_ownself %}
+                                    <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                        No Posts Yet!
+                                    </h1>
+                                    <p class="text-gray-500 mb-5">
+                                        Click on the Post Button to upload your first post!
+                                    </p>
+                                {% elif blocked_by == "current" %}
+                                    <i class="fa-solid fa-ban text-main-500 text-5xl mb-2"></i>
+                                    <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                        User Blocked!
+                                    </h1>
+                                    <p class="text-gray-500 mb-5">
+                                        You have blocked this user's content.
+                                    </p>
+                                {% elif blocked_by == "viewed" %}
+                                <i class="fa-solid fa-ban text-main-500 text-5xl mb-2"></i>
+                                <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                    User Blocked!
+                                </h1>
+                                <p class="text-gray-500 mb-5">
+                                    You have been blocked by this user.
+                                </p>
+                                {% elif user_viewed.privacy.see_posts == "public" or social_button_type == "followed" %}
+                                    <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                        No Posts Yet!
+                                    </h1>
+                                    <p class="text-gray-500 mb-5">
+                                        This user has not posted anything yet!
+                                    </p>
+                                {% else %}
+                                <i class="fa-solid fa-lock text-main-500 text-2xl"></i>
+                                <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                    Private account!
+                                </h1>
+                                <p class="text-gray-500 mb-5">
+                                    Follow this user to gain access!
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>`
+                } else {
+                    postDiv.insertAdjacentHTML("beforeend", `
+                    <div class="text-gray-500 p-5 text-center">
+                        Looks like you reached the end.
+                    </div>`)
+                }
+                initialFetch = false;
+                noMorePosts = true;
+                return;
+            }
+            initialFetch = false;
+            oldestPostID = data[data.length - 1]._id;
+            for (const jsonData of data) {
+                const postRes = getPostHtml(jsonData, "{{ user.id }}");
+
+                const div = document.createElement("div");
+                div.setAttribute("id", jsonData._id)
+                div.innerHTML = postRes.html;
+                postDiv.appendChild(div);
+                addImgEvent(postRes.imgViewIds);
+                formatPlyrJs(postRes.plyrJsIds);
+
+                const heartButton = document.getElementById(`likeButton${jsonData._id}`);
+                const likeCount = document.getElementById(`likeCount${jsonData._id}`);
+                heartButton.addEventListener("click", async () => {
+                    await likeFn(jsonData._id);
+                });
+                if (jsonData.has_liked){
+                    hasLiked.set(jsonData._id, true); 
+                    setAsLiked(document.getElementById(`heartButton${jsonData._id}`), likeCount);
+                };
+
+                if (jsonData.user_id === "{{ user.id }}") {
+                    document.getElementById(`deletePost${jsonData._id}`).addEventListener("click", async () => {
+                        await deleteFunc(jsonData._id);
+                    });
+                }
+
+                const shareButtonId = document.getElementById(`copyToClipboard${jsonData._id}`);
+                shareButtonId.addEventListener("click", async () => {
+                    await copyFunc(jsonData.username, jsonData._id);
+                });
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            isFetching = false;
+            spinner.classList.add("hidden");
+        }
+    }
+
+    // FETCH COMMENTS FUNCTION
+    async function fetchComments() {
+        if (noMorePosts || isFetching) {
+            return;
+        }
+
+        spinner.classList.remove("hidden");
+        isFetching = true;
+        try {
+            res = await fetch(
+                oldestPostID != null ? `${getPostUrl}&offset=${oldestPostID}` : `${getPostUrl}`, 
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include",
+                },
+            )
+            if (!res.ok) {
+                throw new Error(res.message || res);
+            }
+
+            data = await res.json();
+            if (!data || data.length === 0) {
+                if (initialFetch) {
+                    postDiv.innerHTML = `
+                        <div class="border-b border-gray-200  bg-gray-50  py-2 border-l border-r">
+                            <div class="flex flex-col items-center justify-center text-center p-6 bg-white  border-b border-t border-gray-200  hover:bg-gray-50  cursor-pointer transition duration-350 ease-in-out text-blue-400 text-sm">
+                                {% if is_ownself %}
+                                    <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                        No Replies Yet!
+                                    </h1>
+                                    <p class="text-gray-500 mb-5">
+                                        Head to a post and use the comment box below to leave a comment!
+                                    </p>
+                                {% elif user_viewed.privacy.see_posts == "public" or social_button_type == "followed" %}
+                                    <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                        No Comments Yet!
+                                    </h1>
+                                    <p class="text-gray-500 mb-5">
+                                        This user has not posted any comments yet!
+                                    </p>
+                                {% else %}
+                                <i class="fa-solid fa-lock text-main-500 text-2xl"></i>
+                                <h1 class=" text-gray-900 text-2xl font-bold mb-2">
+                                    Private account!
+                                </h1>
+                                <p class="text-gray-500 mb-5">
+                                    Follow this user to gain access!
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>`
+                } else {
+                    postDiv.insertAdjacentHTML("beforeend", `
+                    <div class="text-gray-500 p-5 text-center">
+                        Looks like you reached the end.
+                    </div>`)
+                }
+                initialFetch = false;
+                noMorePosts = true;
+                return;
+            }
+            initialFetch = false;
+            oldestPostID = data[data.length - 1]._id;
+            for (const jsonData of data) {
+                const postRes = getCommentsHtml(jsonData, "{{ user.id }}");
+                const div = document.createElement("div");
+                div.setAttribute("id", jsonData._id)
+                div.innerHTML = postRes.html;
+                postDiv.appendChild(div);
+                addImgEvent(postRes.imgViewIds);
+                formatPlyrJs(postRes.plyrJsIds);
+
+                const heartButtonC = document.getElementById(`likeButton${jsonData._id}`);
+                const likeCountC = document.getElementById(`likeCounter${jsonData._id}`);
+                if (jsonData.has_liked){
+                    hasLikedComment.set(jsonData._id, true); 
+                    setAsLiked(document.getElementById(`heartButton${jsonData._id}`), likeCountC);
+                };
+                heartButtonC.addEventListener("click", async () => {
+                    await likeCommentsFn(jsonData._id);
+                });
+                if (jsonData.user_id === "{{ user.id }}"){
+                    document.getElementById(`deleteComment${jsonData._id}`).addEventListener("click", async () => {
+                        await deleteCommentFunc(jsonData._id, postDiv);
+                    });
+                }
+                const shareButtonIdC = document.getElementById(`copyCommentToClipboard${jsonData._id}`);
+                shareButtonIdC.addEventListener("click", async () => {
+                    await copyFunc(jsonData.post_username, jsonData.post_id);
+                });
+            };
+        } catch (err) {
+            console.error(err);
+        } finally {
+            isFetching = false;
+            spinner.classList.add("hidden");
+        }
+    }
+
+    const activePostTab = () => {
+        postsTabText.classList.remove("text-gray-600");
+        postsTabActive.classList.remove("hidden");
+        repliesTabText.classList.add("text-gray-600");
+        repliesTabActive.classList.add("hidden");
+        resetDiv();
+        noMorePosts = false;
+    }
+
+    const activeRepliesTab = async () => {
+        repliesTabText.classList.remove("text-gray-600");
+        repliesTabActive.classList.remove("hidden");
+        postsTabText.classList.add("text-gray-600");
+        postsTabActive.classList.add("hidden");
+        resetDiv();
+        noMorePosts = false;
+    }
+
+    // base code below
+    // while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+    //     // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+    //     await fetchData();
+    //     await new Promise((resolve) => setTimeout(resolve, 1500));
+    // }
+    document.addEventListener("DOMContentLoaded", async () => {
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchPosts();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        document.addEventListener("scroll", async (e) => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchPosts();
+            }
+        });
+    });
+
+    postsTab.addEventListener("click", async () => {
+        activePostTab();
+        await fetchPosts(); // initial fetch
+
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchPosts(); 
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        document.addEventListener("scroll", async (e) => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchPosts();
+            }
+        });
+    });
+
+    repliesTab.addEventListener("click", async () => {
+        activeRepliesTab();
+        await fetchComments(); // initial fetch
+
+        while (window.innerHeight >= document.body.offsetHeight && !noMorePosts) {
+            // if the user's screen is too tall keep fetching until they can scroll and if noMorePosts is false 
+            await fetchComments();
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        document.addEventListener("scroll", async (e) => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                await fetchComments();
+            }
+        });
+    });
+</script>
+
+{% if request.session.get(SESSION_COOKIE) is not none and not is_ownself %}
+    <!--Script for Follow/Unfollow Buttons-->
+    <script nonce="{{ csp_nonce }}">
+        function getSpinner(speed, color) {
+            return `
+            <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>`
+        }
+
+        {% if blocked_by is none %}
+            const socialButton = document.getElementById("social-button")
+            {% if social_button_type == "followed" %}
+                const unfollowModal = document.getElementById("unfollow-modal")
+                socialButton.firstElementChild.addEventListener("click", () => HSOverlay.open(unfollowModal))
+                unfollowModal.querySelector("button").addEventListener("click", unfollowAction)
+            {% elif social_button_type == "unfollowed" and not is_ownself %}
+                const unfollowModal = document.getElementById("unfollow-modal")
+                socialButton.firstElementChild.addEventListener("click", followAction)
+            {% endif %}
+
+            function unfollowAction() {
+                var listeningButton = event.target
+                listeningButton.innerHTML = getSpinner("normal", "white")
+                listeningButton.classList.add("bg-gray-900")
+                
+                fetch("/api/unfollow-user/{{ user_viewed.username }}", {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                    },
+                    credentials: "include",
+                })
+                .then(response => response.json())
+                .then(data => {
+                    //Change Button
+                    socialButton.innerHTML = `
+                    <button class="text-white bg-gray-800 hover:bg-gray-900 font-bold rounded-full px-5 py-2.5">
+                        Follow
+                    </button>`
+                    socialButton.firstElementChild.addEventListener("click", followAction)
+
+                    // Reset Modal
+                    HSOverlay.close(unfollowModal)
+                    listeningButton.classList.remove("bg-gray-900")
+                    listeningButton.innerHTML = "Unfollow"
+                    
+                    // Reset event listener
+                    listeningButton.parentElement.insertAdjacentElement("afterbegin", listeningButton.cloneNode(true))
+                    listeningButton.remove()
+
+                // Notify
+                notify("User unfollowed. Please reload your page.")
+            })
+            .catch(error => {
+                notify(error)
+                console.error(`Error: ${error}`)
+                listeningButton.classList.remove("bg-gray-900")
+                listeningButton.innerHTML = "Unfollow"
+            })
+        }
+
+            function followAction() {
+            event.target.innerHTML = getSpinner("normal", "white")
+
+            fetch("/api/follow-user/{{ user_viewed.username }}", {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                credentials: "include",
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Change Button
+                if (data.message == "requested") {
+                    socialButton.innerHTML = `
+                    <a href= "{{ url_for('followers', follower_type='requests') }}">
+                        <button class="rounded-full px-5 py-2.5 btn-main">
+                            <i class="fa-solid fa-envelope-circle-check"></i>
+                            &nbsp;Sent
+                        </button>
+                    </a>
+                    `
+
+            } else { // if data.message == "followed"
+                socialButton.innerHTML = `
+                <button class="rounded-full border border-gray-300 px-4 py-1.5 font-bold transition duration-150 ease-in-out hover:bg-gray-200">
+                    Unfollow
+                </button>`
+                socialButton.firstElementChild.addEventListener("click", () => HSOverlay.open(unfollowModal))
+                unfollowModal.querySelector("button").addEventListener("click", unfollowAction)    
+            }
+            notify(`User ${data.message}. Please reload your page.`)
+        })
+        .catch(error => {
+            notify(error)
+            console.error(`Error: ${error}`)
+            event.target.innerHTML = "Follow"
+        })
+    }
+        {% endif %}    
+    </script>
+
+    <!--Script for Block/Unblock Modal-->
+    <script nonce="{{ csp_nonce }}">
+    const blockButton = document.getElementById("block-button")
+    const blockModal = document.getElementById("block-modal")
+
+    blockButton.addEventListener("click", () => HSOverlay.open(blockModal))
+    blockModal.querySelector("button").addEventListener("click", blockUser)
+
+    {% 
+        with url = url_for('unblock_user', target_username=user_viewed.username)
+                    if blocked_by == "current"
+                    else url_for('block_user', target_username=user_viewed.username)
+    %}
+        function blockUser() {
+            const confirmButton = event.target
+            confirmButton.innerHTML = getSpinner("normal", "white")
+            fetch("{{ url }}" , {
+                method: "PUT",
+                headers: {
+                    "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+                },
+                credentials: "include",
+            })
+            .then(response => {
+                // Notify
+                notify("User blocked. Reloading your page...");
+                HSOverlay.close(blockModal);
+                confirmButton.innerHTML = "Block";
+                setTimeout(() => location.reload(), 1000);
+            })
+            .catch(error => {
+                notify(error);
+                console.error(`Error: ${error}`);
+                confirmButton.innerHTML = "Block";
+            })
+        }
+    {% endwith %}
+    </script>
+
+    {% if not is_ownself %}
+    <!--Script for Report Modal-->
+    <script nonce="{{ csp_nonce }}">
+    const reportModal = document.getElementById("report-modal");
+    const reportButton = document.getElementById("report-submit-button");
+    reportButton.onclick = async function() {
+        reportButton.innerHTML = getSpinner("normal", "white");
+
+        const [affected, reason, method] = [document.getElementById("affected"), document.getElementById("reason"), document.getElementById("method")];
+        const submissionValues = {
+            "affected": affected.options[affected.selectedIndex].innerText,
+            "reason": reason.options[reason.selectedIndex].innerText,
+            "method": method.value,
+        };
+
+        const response = await fetch("{{ url_for('report_user', reported_username = user_viewed.username) }}", {
+            "method": "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+            body: JSON.stringify(submissionValues)
+        })
+        const data = await response.json()
+        if (!response.ok) {
+            if (response.status == 422) {
+                data.message = "Textarea supports between 50 to 500 letters."
+            console.error(data.message);
+            }
+        } else {
+            setTimeout(() => location.reload(), 1000)
+        }
+        notify(data.message);
+        reportButton.innerHTML = "Send Report"
+    }
+    </script>
+    {% endif %}
+{% endif %}
+{% endblock %}

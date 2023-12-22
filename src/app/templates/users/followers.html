@@ -1,0 +1,506 @@
+{% extends "base_ui.html" %}
+{% block title %}People following {{ user.display_name }}{% endblock %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block body_class %}bg-white{% endblock %}
+
+{% block content %}
+<div id="unfollow-modal" class="hs-overlay hidden w-full h-full fixed top-0 left-0 z-[60] overflow-x-hidden overflow-y-auto">
+    <div class="hs-overlay-open:opacity-100 hs-overlay-open:duration-500 opacity-0 transition-all w-fit mx-auto flex flex-col items-center relative m-3 md:top-2/4 md:-translate-y-2/4">
+        <div class="flex flex-col bg-white border shadow-sm rounded-xl p-8 w-80 max-w-[80vw]">
+            <span class="mb-2 text-xl font-bold break-words">Unfolow @${user.display_name}?</span>
+            <span class="text-sm text-gray-500">
+                Their posts will no longer show up in your home timeline. You can still view their profile, unless they are protected.
+            </span>
+            <div class="flex flex-col">
+                <button class="btn normal-case text-white py-2.5 mt-4 border-none rounded-full bg-gray-400 hover:bg-gray-900 transition-colors duration-500 cubic ease-in">
+                    Unfollow
+                </button>
+                <button class="btn normal-case btn-main border-none py-2.5 mt-4 rounded-full" data-hs-overlay="#unfollow-modal">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Name and tweet count header -->
+<div class="flex items-center space-x-4 p-1.5">
+    <a href="{{ url_for('profile', username=user.username) }}" class="inline-flex items-center justify-center rounded-full p-2 transition duration-150 ease-in-out hover:bg-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15m0 0l6.75 6.75M4.5 12l6.75-6.75" />
+        </svg>
+    </a>
+    <div class="flex flex-col items-start">
+        <h2 class="text-xl font-bold tracking-tight">{{ user.display_name }}</h2>
+        <span class="text-xs text-gray-500 ">@{{ user.username }}</span>
+    </div>
+</div>
+
+<!-- Tabs -->
+<ul class="flex justify-evenly">
+    {% for title in titles %}
+    <li id="click-{{ title }}" class="relative flex w-full cursor-pointer items-center justify-center p-4 transition duration-150 ease-in-out hover:bg-gray-200 ">
+        <span class="font-bold capitalize">{{ title }}</span>
+        {% if current == title %}
+        <div class="absolute bottom-0 w-14 border-b-[3px] border-main-50" id="pink-rectangle"></div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+<!-- /Tabs -->
+
+<!-- Followers -->
+<div id="user-list">
+</div>
+<!-- /Followers -->
+
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+
+/* Initialise Values */
+let currentContext = "{{ current }}"
+let cache = {
+    followers: undefined,
+    following: undefined,
+    pending: undefined,
+    requests: undefined
+}
+const userList = document.getElementById("user-list")
+const unfollowModal = document.getElementById("unfollow-modal")
+
+document.getElementById("click-followers").addEventListener("click", () => changeContext("followers"))
+document.getElementById("click-following").addEventListener("click", () => changeContext("following"))
+document.getElementById("click-requests").addEventListener("click", () => changeContext("requests"))
+
+{% if user.privacy.be_follower == "request_needed" %}
+    document.getElementById("click-pending").addEventListener("click", () => changeContext("pending"))
+{% endif %}
+
+changeContext(currentContext)
+/* End of Initialise Values */
+
+/* User Element Creation */
+function createUser(user, index) {
+    let userElement = `
+    <div class="p-5 border-gray-200 flex transition-all" id="user-${user.username}">
+        <a href="/profile/${user.username}" class="h-fit">
+            <img class="w-12 rounded-full" src="${user.user_image_url}"/>
+        </a>
+
+        <div class="ml-4 w-full">
+            <div class="flex flex-row justify-between">
+                <div class="flex flex-col">
+                    <span class="font-bold">${user.display_name}</span>
+                    <span class="text-gray-500">@${user.username}</span>
+                </div>
+                <div id="button-${user.username}" class="flex items-center"></div>
+            </div>
+            <div class="pt-1">
+                ${user.bio}
+            </div>
+        </div>
+    </div>`;
+    userList.insertAdjacentHTML("beforeend", userElement);
+
+    renderButton(user.username, index, user.following_status);
+}
+
+/*
+Accept-Ignore: Current Context = Pending
+Remove: Current Context = Requests
+Requested: Current Context = Followers; Following Status = "pending"
+Requesting: Current Context = Following; Following Status = "requests"
+Unfollow: Current Context = Following; Following Status = "followed"
+Follow: Current Context = Followers | Following; Following Status = "unfollowed"
+*/
+function renderButton(username, index, followingStatus) {
+    if (window.currentContext == "pending") {         // Following Status: "pending"
+        acceptIgnoreButton(username, index)
+    } else if (window.currentContext == "requests") { // Following Status: "requests"
+        removeButton(username, index)
+    } else if (followingStatus == "pending") {  // Current Context: "following"
+        requestingButton(username, index)
+    } else if (followingStatus == "requests") { // Current Context: "followers"
+        requestedButton(username)
+    } else if (followingStatus == "followed") { // Current Context: "following"
+        unfollowButton(username, index)
+    } else {                                    // Current Context: "followers" OR "following"
+        followButton(username, index)          // Following Status: "unfollowed"
+    }
+}
+
+/******       Start of Buttons        ******/
+function acceptIgnoreButton(username, index) {
+    document.getElementById(`button-${username}`).innerHTML = `
+    <button id="action-accept-${username}" class="text-white bg-green-700 hover:bg-green-800 font-medium rounded-full px-5 py-2.5 text-center mr-2">
+        Accept
+    </button>
+    <button id="action-ignore-${username}" class="text-white bg-red-700 hover:bg-red-800 font-medium rounded-full px-5 py-2.5 text-center">
+        Ignore
+    </button>`
+    
+    document.getElementById(`action-accept-${username}`)
+        .addEventListener("click", () => acceptAction(username, index, event.target))
+    document.getElementById(`action-ignore-${username}`)
+        .addEventListener("click", () => ignoreAction(username, index, event.target))
+}
+
+function removeButton(username, index) {
+    document.getElementById(`button-${username}`).innerHTML = `
+    <button id="action-remove-${username}" class="text-4xl text-gray-400 hover:text-gray-500">
+      &times;
+    </button>`
+    document.getElementById(`action-remove-${username}`)
+        .addEventListener("click", () => removeAction(username, index, event.target))
+}
+
+function requestedButton(username) {
+    document.getElementById(`button-${username}`).innerHTML = `
+    <button id="action-requested-${username}" class="rounded-full px-5 py-2.5 btn-main">
+        <i class="fa-solid fa-envelope-circle-check"></i>
+        &nbsp;Sent
+    </button>
+    `
+    document.getElementById(`action-requested-${username}`)
+        .addEventListener("click", () => requestedAction(username))
+}
+
+function requestingButton(username, index) {
+    unfollowButton(username, index)
+    document.getElementById(`button-${username}`).insertAdjacentHTML("afterbegin", `
+    <i class="fa-solid fa-envelope text-main-50 hover:text-main-900 ease-in duration-500 text-2xl mr-4 cursor-pointer"></i>
+    `)
+    document.getElementById(`button-${username}`).firstElementChild
+        .addEventListener("click", () => requestingAction(username))
+}
+
+function unfollowButton(username, index) {
+    document.getElementById(`button-${username}`).innerHTML = `
+    <button id="action-unfollow-${username}" class="text-gray-900 bg-white border border-gray-300 hover:bg-gray-100 font-bold rounded-full px-5 py-2.5">
+        Unfollow
+    </button>`
+    document.getElementById(`action-unfollow-${username}`)
+        .addEventListener("click", () => unfollowAction(username, index))
+}
+
+function followButton(username, index) {
+    document.getElementById(`button-${username}`).innerHTML = `
+    <button id="action-follow-${username}" class="text-white bg-gray-800 hover:bg-gray-900 font-bold rounded-full px-5 py-2.5">
+        Follow
+    </button>`
+    document.getElementById(`action-follow-${username}`)
+        .addEventListener("click", () => followAction(username, index, event.target))
+}
+/******         End of Buttons        ******/
+
+/******         Button Actions        ******/
+function acceptAction(username, index, listeningButton) {
+    var userElement = document.getElementById(`user-${username}`)
+    listeningButton.innerHTML = getSpinner("normal", "white")
+
+    fetch(`/api/confirm-following/${username}`, {
+            method: "PUT",
+            headers: {
+                "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+            },
+            credentials: "include",
+    })
+    .then(response => response.json())
+    .then(data => {
+        notify("Request accepted.");
+        (async () => {
+            cache.followers = await getMoreFollowers("followers");
+            cache.following = await getMoreFollowers("following");
+        })()
+
+        // Remove element in "pending"
+        userElement.classList.add("animate-wipe-up")
+        setTimeout(() => userElement.remove(), 1000)
+
+        // Remove element from cache
+        cache.pending = cache.pending.filter(user => user.username != username)
+        checkEmpty()
+    })
+    .catch(error => {
+        console.error(`Error: ${error}`)
+        listeningButton.innerHTML = "Accept"
+        notify(error)
+    })
+}
+
+function ignoreAction(username, index, listeningButton) {
+    var userElement = document.getElementById(`user-${username}`)
+    listeningButton.innerHTML = getSpinner("normal", "white")
+
+    fetch(`/api/unfollow-user/${username}`, {
+        method: "PUT",
+        headers: {
+            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+        },
+        credentials: "include",
+    })
+    .then(response => response.json())
+    .then(data => {
+        notify(`Request ignored.`)
+        cache.following = async () => await getMoreFollowers("following");
+
+        // Remove element in "pending"
+        userElement.classList.add("animate-wipe-up")
+        setTimeout(() => userElement.remove(), 1000)
+
+        // Remove element from cache
+        cache.pending = cache.pending.filter(user => user.username != username)
+        checkEmpty()
+    })
+    .catch(error => {
+        console.error(`Error: ${error}`)
+        listeningButton.innerHTML = "Ignore"
+        notify(error)
+    })
+}
+
+function removeAction(username, index, listeningButton) {
+    var userElement = document.getElementById(`user-${username}`)
+    listeningButton.innerHTML = getSpinner("normal", "main")
+
+    fetch(`/api/remove-request/${username}`, {
+        method: "PUT",
+        headers: {
+            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+        },
+        credentials: "include",
+    })
+    .then(response => response.json())
+    .then(data => {
+        notify("Request removed.")
+
+        // Change button in "followers" (if exist)
+        if (cache.followers != undefined) {
+            for (let index = 0; index < cache.followers.length; index++) {
+                if (cache.followers[index].username == username) {
+                    cache.followers[index].following_status = "unfollowed"
+                    break
+                }
+            }
+        }
+
+        // Remove element in "requests"
+        userElement.classList.add("animate-wipe-up")
+        setTimeout(() => userElement.remove(), 1000)
+
+        // Remove element from cache
+        cache.requests = cache.requests.filter(user => user.username != username)
+        checkEmpty()
+    })
+    .catch(error => {
+        console.error(`Error: ${error}`)
+        listeningButton.innerHTML = "&times;"
+        notify(error)
+    })
+}
+
+async function requestedAction(username) {
+    await changeContext("requests")
+    const userElement = document.getElementById(`user-${username}`)
+    userElement.scrollIntoView({block: "center"})
+    userElement.classList.add("animate-highlight")
+}
+
+async function requestingAction(username) {
+    await changeContext("pending")
+    const userElement = document.getElementById(`user-${username}`)
+    userElement.scrollIntoView({block: "center"})
+    userElement.classList.add("animate-highlight")
+}
+
+async function unfollowAction(username, index) {
+    const confirmButton = unfollowModal.querySelector("button")
+    
+    confirmButton.parentElement.insertAdjacentElement("afterbegin", confirmButton.cloneNode(true))
+    confirmButton.remove() // Reset existing event listener
+    unfollowModal.querySelector("button")
+        .addEventListener("click", () => unfollowActionConfirm(username, index))
+
+    unfollowModal.querySelector("span").innerText = `Unfollow @${username}?`
+    HSOverlay.open(unfollowModal)
+}
+
+async function unfollowActionConfirm(username, index) {
+    var userElement = document.getElementById(`user-${username}`)
+    var listeningButton = event.target
+    listeningButton.innerHTML = getSpinner("normal", "white")
+    listeningButton.classList.add("bg-gray-900")
+
+    fetch(`/api/unfollow-user/${username}`, {
+        method: "PUT",
+        headers: {
+            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+        },
+        credentials: "include",
+    })
+    .then(response => response.json())
+    .then(data => {
+        switch (window.currentContext) {
+            case "followers":
+                // Change button in "followers"
+                cache.followers[index].following_status = "unfollowed"
+                renderButton(username, index, "unfollowed")
+
+                if (cache.following != undefined) {
+                    // User removed from "following" (if exists)
+                    cache.following = cache.following.filter(user => user.username != username)
+                }
+                break
+            case "following":
+                if (cache.followers != undefined) {
+                    // Change button in "followers"
+                    for (let index = 0; index < cache.followers.length; index++) {
+                        if (cache.followers[index].username == username) {
+                            cache.followers[index].following_status = "unfollowed"
+                            break
+                        }
+                    }
+                }
+
+                // User removed from "following"
+                userElement.classList.add("animate-wipe-up")
+                setTimeout(() => userElement.remove(), 1000)
+                
+                // Remove element from cache
+                cache.following = cache.following.filter(user => user.username != username)
+                checkEmpty()
+                break
+            default:
+                throw new Error(`Invalid parameter value "currentContext": ${window.currentContext}`)
+        }
+        
+        // Reset Modal
+        HSOverlay.close(unfollowModal)
+        notify("User unfollowed.")
+
+        listeningButton.classList.remove("bg-gray-900")
+        listeningButton.innerHTML = "Unfollow"
+    })
+    .catch(error => {
+        notify(error)
+        console.error(`Error: ${error}`)
+        listeningButton.classList.remove("bg-gray-900")
+        listeningButton.innerHTML = "Unfollow"
+    })
+}
+
+async function followAction(username, index, listeningButton) {
+    var userElement = document.getElementById(`user-${username}`)
+    listeningButton.innerHTML = getSpinner("normal", "white")
+
+    fetch(`/api/follow-user/${username}`, {
+        method: "PUT",
+        headers: {
+            "{{ CSRF_HEADER_NAME }}": getCSRFToken(),
+        },
+        credentials: "include",
+    })
+    .then(response => response.json())
+    .then(data => {
+        switch (data.message) {
+            case "followed":
+                // User copied from "following" to "followers"
+                cache.followers[index].following_status = "followed"
+                renderButton(username, index, "followed")
+                if (cache.following != undefined) {
+                    cache.following.push(cache.followers[index]);
+                }
+                notify("Followed")
+                break
+            case "requested":
+                // User copied from "following" to "requests"
+                cache.followers[index].following_status = "requests"
+                renderButton(username, index, "requests")
+                if (cache.requests != undefined) {
+                    cache.requests.push(cache.followers[index]);
+                }
+                notify("Requested")
+                break
+            default:
+                throw new Error(`Server returned malformed response "${data.message}". Please inform an administrator.`)
+        }
+        listeningButton.innerHTML = "Follow"
+    })
+    .catch(error => {
+        notify(error)
+        console.error(`Error: ${error}`)
+        listeningButton.innerHTML = "Follow"
+    })
+}
+/******     End of Button Actions     ******/
+
+/******        Helper Functions       ******/
+function getSpinner(speed, color) {
+    return `
+    <svg class="${speed == "fast" ? "animate-spin-fast" : "animate-spin"} h-5 w-5 text-${color}-500 m-auto" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>`
+}
+
+function checkEmpty() {
+    if (cache[window.currentContext].length == 0) {
+        userList.insertAdjacentHTML("beforeend", `
+        <div class="text-gray-500 p-5 text-center">
+            No users found.
+        </div>
+        <hr>
+        <img class="w-full" src="{{ url_for('static', path='img/followers/hakutaku.webp') }}">`)
+    }
+}
+/******     End of Helper Functions    ******/
+
+/*** Title Settings ***/
+async function getMoreFollowers(context) {
+    let response = await fetch(
+        `/api/followers?follower_type=${context}`, 
+        {
+            method: "GET",
+            credentials: "include",
+        }
+    )
+    let data = await response.json()
+    // console.log(data)
+    return data[context]
+}
+
+async function changeContext(context) {
+    userList.innerHTML = `
+    <div class="m-2.5">
+        ${getSpinner("fast", "main")}
+    </div>`
+    history.pushState(null, null, context)
+    
+    const pinkRectangle = document.getElementById("pink-rectangle")
+    pinkRectangle.remove()
+    document.getElementById(`click-${context}`).insertAdjacentElement("beforeend", pinkRectangle)
+
+    window.currentContext = context
+    console.log(`Changed Context: ${window.currentContext}`)
+
+    document.title = {
+        "following": "People followed by {{ user.display_name }}",
+        "followers": "People following {{ user.display_name }}",
+        "pending": "Requests sent out by {{ user.display_name }}",
+        "requests": "Pending requests for {{ user.display_name }}",
+    }[context]
+
+    if (cache[context] == undefined) {
+        cache[context] = await getMoreFollowers(context);
+    }
+
+    cache[context].forEach((user, index) => createUser(user, index))
+    checkEmpty()
+    userList.removeChild(userList.firstElementChild)    // Remove spinner
+}
+/*** End of Title Settings ***/
+
+</script>
+{% endblock %}

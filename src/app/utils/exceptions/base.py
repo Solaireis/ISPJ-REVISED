@@ -1,0 +1,2 @@
+class MiraiBaseException(Exception):
+    pass
