@@ -1,5 +1,5 @@
 fastapi==0.92.0
 orjson==3.8.6
 PassportEye==2.2.0
-google-api-python-client==2.79.0
+google-api-python-client==2.111.0
 google-cloud-logging==3.5.0
