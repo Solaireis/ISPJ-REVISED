@@ -44,6 +44,8 @@ It was also hosted on [https://miraisocial.live](https://miraisocial.live) and a
 ## Running the Application
 
 > pip install -r requirements.txt
+>
+> npm ci
 > 
 > npm run build-css
 > 
