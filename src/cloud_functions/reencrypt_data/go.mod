@@ -8,7 +8,7 @@ require (
 	github.com/GoogleCloudPlatform/functions-framework-go v1.6.1
 	go.mongodb.org/mongo-driver v1.11.2
 	google.golang.org/api v0.110.0
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
