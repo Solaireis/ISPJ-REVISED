@@ -30,7 +30,7 @@ ipinfo==4.4.2
 # For optimisations
 orjson==3.8.6
 minify-html==0.10.8
-aiofiles==23.1.0
+aiofiles==23.2.1
 
 # Cryptography purpose
 argon2-cffi==21.3.0
