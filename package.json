@@ -5,7 +5,7 @@
     "babelify": "^10.0.0",
     "browserify": "^17.0.0",
     "esmify": "^2.1.1",
-    "tailwindcss": "^3.2.7"
+    "tailwindcss": "^3.4.0"
   },
   "scripts": {
     "build-css": "tailwindcss -i ./src/app/static/css/main.css -o ./src/app/static/css/tailwind.css",
